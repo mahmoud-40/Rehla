@@ -55,7 +55,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: BreastCancer.API/Dockerfile
+      dockerfile: Dockerfile
     container_name: breast-cancer-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
