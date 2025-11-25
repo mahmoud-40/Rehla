@@ -8,7 +8,7 @@ This directory contains Keycloak realm configuration files for **LOCAL DEVELOPME
 
 The `breast-cancer-realm.json` file contains a hardcoded client secret:
 - **Client**: `breast-cancer-api`
-- **Secret**: `******************` (hidden for security)
+- **Secret**: [REDACTED - see file for actual value]
 
 **🚨 DO NOT USE THIS CONFIGURATION IN PRODUCTION 🚨**
 
@@ -49,4 +49,4 @@ Use .NET User Secrets (never for production):
 dotnet user-secrets set "Keycloak:ClientSecret" "your-dev-secret"
 ```
 
-The .NET configuration system automatically reads environment variables using the double-underscore (`__`) syntax or the configuration key path.
+**Note:** The .NET configuration system supports both colon (`:`) and double-underscore (`__`) syntax. Use colons in JSON files and user-secrets, and double-underscores in environment variables (since colons may not be allowed in some environments).
