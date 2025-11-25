@@ -27,9 +27,14 @@
 
 **This configuration is for LOCAL DEVELOPMENT ONLY.**
 
-The Keycloak realm configuration (`keycloak/import/breast-cancer-realm.json`) contains hardcoded secrets that are **NOT SECURE** for production use. Before deploying to any production or staging environment:
+The Keycloak realm configuration (`keycloak/import/breast-cancer-realm.json`) contains hardcoded secrets that are **NOT SECURE** for production use:
+- Keycloak client secret (`breast-cancer-api`)
+- Demo user passwords
+- Keycloak admin credentials
 
-1. **Change all default passwords and secrets**
+Before deploying to any production or staging environment:
+
+1. **Generate new client secrets and change all default passwords**
 2. **Use environment variables or a secret management system** (e.g., Azure Key Vault, AWS Secrets Manager)
 3. **Never commit production credentials** to version control
 4. **Review the security documentation** in `keycloak/README.md` for detailed instructions

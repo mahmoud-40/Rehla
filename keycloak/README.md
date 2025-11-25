@@ -8,7 +8,7 @@ This directory contains Keycloak realm configuration files for **LOCAL DEVELOPME
 
 The `breast-cancer-realm.json` file contains a hardcoded client secret:
 - **Client**: `breast-cancer-api`
-- **Secret**: `7ta-la-yter-eldo5an`
+- **Secret**: `7ta-la-***-eldo5an` (obfuscated for documentation)
 
 **🚨 DO NOT USE THIS CONFIGURATION IN PRODUCTION 🚨**
 
@@ -30,16 +30,16 @@ For production environments:
 
 ### Recommended Production Setup
 
+For .NET applications, use environment variables or Azure App Configuration:
+
 ```bash
-# Use environment variables instead of hardcoded values
-export KEYCLOAK_CLIENT_SECRET="your-secure-production-secret"
+# Set environment variable
+export Keycloak__ClientSecret="your-secure-production-secret"
 ```
 
-Then reference it in your application configuration (appsettings.json):
-```json
-{
-  "Keycloak": {
-    "ClientSecret": "${KEYCLOAK_CLIENT_SECRET}"
-  }
-}
+Or use User Secrets for local development:
+```bash
+dotnet user-secrets set "Keycloak:ClientSecret" "your-secure-production-secret"
 ```
+
+The .NET configuration system automatically reads environment variables using the double-underscore (`__`) syntax or the configuration key path.
