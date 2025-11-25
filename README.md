@@ -22,7 +22,7 @@
 - **Patient**: `demo.patient` / `patient123`  
 - **Admin**: `admin` / `admin123`
 - **Caregiver**: `demo.caregiver` / `caregiver123`
-- 
+
 ## Development Workflow
 
 ### Branching Strategy

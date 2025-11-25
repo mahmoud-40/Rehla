@@ -48,7 +48,6 @@ namespace BreastCancer
             });
             #endregion
 
-
             #region Keycloak Authentication
             builder.Services.AddAuthentication(options =>
             {
@@ -67,21 +66,22 @@ namespace BreastCancer
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = builder.Configuration["Keycloak:Authority"],
-                    ValidAudience = builder.Configuration["Keycloak:Audience"]
+                    ValidAudience = builder.Configuration["Keycloak:Audience"],
+                    RoleClaimType = "realm_access.roles" 
                 };
 
                 options.Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogError("Authentication failed: {0}", context.Exception.Message);
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError("Authentication failed: {Exception}", context.Exception.Message);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
-                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("Token validated for {0}", context.Principal.Identity.Name);
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogInformation("Token validated for user: {User}", context.Principal.Identity.Name);
                         return Task.CompletedTask;
                     }
                 };
@@ -89,14 +89,14 @@ namespace BreastCancer
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("Patient", policy => policy.RequireClaim("realm_roles", "patient"));
-                options.AddPolicy("Doctor", policy => policy.RequireClaim("realm_roles", "doctor"));
-                options.AddPolicy("Admin", policy => policy.RequireClaim("realm_roles", "admin"));
-                options.AddPolicy("Caregiver", policy => policy.RequireClaim("realm_roles", "caregiver"));
+                options.AddPolicy("Patient", policy => policy.RequireRole("patient"));
+                options.AddPolicy("Doctor", policy => policy.RequireRole("doctor"));
+                options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
+                options.AddPolicy("Caregiver", policy => policy.RequireRole("caregiver"));
 
-                // Allow multiple roles
-                options.AddPolicy("HealthcareProvider", policy =>
-                    policy.RequireClaim("realm_roles", "doctor", "admin"));
+                options.AddPolicy("MedicalAccess", policy => policy.RequireRole("doctor"));
+                options.AddPolicy("SystemAdmin", policy => policy.RequireRole("admin"));
+                options.AddPolicy("ContentAccess", policy => policy.RequireRole("doctor", "admin", "patient", "caregiver"));
             });
             #endregion
 
