@@ -22,7 +22,20 @@
 - **Patient**: `demo.patient` / `patient123`  
 - **Admin**: `admin` / `admin123`
 - **Caregiver**: `demo.caregiver` / `caregiver123`
-- 
+
+## ⚠️ Security Notice
+
+**This configuration is for LOCAL DEVELOPMENT ONLY.**
+
+The Keycloak realm configuration (`keycloak/import/breast-cancer-realm.json`) contains hardcoded secrets that are **NOT SECURE** for production use. Before deploying to any production or staging environment:
+
+1. **Change all default passwords and secrets**
+2. **Use environment variables or a secret management system** (e.g., Azure Key Vault, AWS Secrets Manager)
+3. **Never commit production credentials** to version control
+4. **Review the security documentation** in `keycloak/README.md` for detailed instructions
+
+For production deployment guidelines, see the [Keycloak Security Documentation](keycloak/README.md).
+
 ## Development Workflow
 
 ### Branching Strategy
