@@ -1,7 +1,6 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 
 namespace BreastCancer
@@ -75,12 +74,14 @@ namespace BreastCancer
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError("Authentication failed: {0}", context.Exception.Message);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
-                        Console.WriteLine("Token validated successfully");
+                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogInformation("Token validated for {0}", context.Principal.Identity.Name);
                         return Task.CompletedTask;
                     }
                 };
@@ -91,7 +92,7 @@ namespace BreastCancer
                 options.AddPolicy("Patient", policy => policy.RequireClaim("realm_roles", "patient"));
                 options.AddPolicy("Doctor", policy => policy.RequireClaim("realm_roles", "doctor"));
                 options.AddPolicy("Admin", policy => policy.RequireClaim("realm_roles", "admin"));
-                options.AddPolicy("Family", policy => policy.RequireClaim("realm_roles", "family"));
+                options.AddPolicy("Caregiver", policy => policy.RequireClaim("realm_roles", "caregiver"));
 
                 // Allow multiple roles
                 options.AddPolicy("HealthcareProvider", policy =>
@@ -110,6 +111,7 @@ namespace BreastCancer
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

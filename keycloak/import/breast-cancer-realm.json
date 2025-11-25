@@ -135,6 +135,9 @@
           "value": "caregiver123",
           "temporary": false
         }
+      ],
+      "realmRoles": [
+        "caregiver"
       ]
     }
   ]

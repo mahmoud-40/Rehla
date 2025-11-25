@@ -23,7 +23,7 @@ services:
       - breast-cancer-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:22.0.0
+    image: quay.io/keycloak/keycloak:23.0.6
     container_name: breast-cancer-keycloak
     environment:
       - KC_HEALTH_ENABLED=true
