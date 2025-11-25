@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: breast-cancer-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=BC@Password123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "BC@Password123!" -Q "SELECT 1" || exit 1
+      interval: 10s
+      retries: 10
+      start_period: 30s
+      timeout: 3s
+    networks:
+      - breast-cancer-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.0
+    container_name: breast-cancer-keycloak
+    environment:
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KC_DB=dev-file
+      - KC_FEATURES=scripts
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./keycloak/data:/opt/keycloak/data
+      - ./keycloak/import:/opt/keycloak/data/import
+    depends_on:
+      - sql-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - breast-cancer-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: BreastCancer.API/Dockerfile
+    container_name: breast-cancer-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sql-server;Database=BreastCancerDB;User Id=sa;Password=BC@Password123!;TrustServerCertificate=true;MultipleActiveResultSets=true;
+      - Keycloak__Authority=http://keycloak:8080/realms/breast-cancer-realm
+      - Keycloak__Audience=breast-cancer-api
+      - Keycloak__MetadataAddress=http://keycloak:8080/realms/breast-cancer-realm/.well-known/openid-configuration
+    ports:
+      - "8080:80"
+    depends_on:
+      sql-server:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - breast-cancer-network
+
+volumes:
+  sqlserver-data:
+
+networks:
+  breast-cancer-network:
+    driver: bridge
