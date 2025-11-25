@@ -1,0 +1,144 @@
+{
+  "id": "breast-cancer-realm",
+  "realm": "breast-cancer-realm",
+  "displayName": "Breast Cancer App",
+  "enabled": true,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      {
+        "name": "patient",
+        "description": "Breast Cancer Patient"
+      },
+      {
+        "name": "doctor",
+        "description": "Healthcare Doctor"
+      },
+      {
+        "name": "admin",
+        "description": "System Administrator"
+      },
+      {
+        "name": "caregiver",
+        "description": "Patient Caregiver (Family, Friend, nurse, etc..)"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "breast-cancer-api",
+      "name": "Breast Cancer Backend API",
+      "description": "Backend API for Breast Cancer Application",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "secret": "7ta-la-yter-eldo5an",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "https://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "https://localhost:8080"
+      ],
+      "defaultRoles": [
+        "offline_access",
+        "uma_authorization"
+      ]
+    },
+    {
+      "clientId": "breast-cancer-web",
+      "name": "Breast Cancer Web App",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "https://localhost:3000"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@breastcancer.app",
+      "firstName": "System",
+      "lastName": "Administrator",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "demo.patient",
+      "email": "patient@demo.com",
+      "firstName": "Demo",
+      "lastName": "Patient",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "patient123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "patient"
+      ]
+    },
+    {
+      "username": "demo.doctor",
+      "email": "doctor@demo.com",
+      "firstName": "Demo",
+      "lastName": "Doctor",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "doctor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "doctor"
+      ]
+    },
+    {
+      "username": "demo.caregiver",
+      "email": "caregiver@demo.com",
+      "firstName": "Demo",
+      "lastName": "Caregiver",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "caregiver123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "caregiver"
+      ]
+    }
+  ]
+}

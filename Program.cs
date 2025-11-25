@@ -1,4 +1,8 @@
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+
 namespace BreastCancer
 {
     public class Program
@@ -12,7 +16,89 @@ namespace BreastCancer
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            #region Swagger
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Breast Cancer API", Version = "v1" });
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
+            #endregion
+
+            #region Keycloak Authentication
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.Authority = builder.Configuration["Keycloak:Authority"];
+                options.Audience = builder.Configuration["Keycloak:Audience"];
+                options.RequireHttpsMetadata = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["Keycloak:Authority"],
+                    ValidAudience = builder.Configuration["Keycloak:Audience"],
+                    RoleClaimType = "realm_access.roles" 
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError("Authentication failed: {Exception}", context.Exception.Message);
+                        return Task.CompletedTask;
+                    },
+                    OnTokenValidated = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogInformation("Token validated for user: {User}", context.Principal.Identity.Name);
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Patient", policy => policy.RequireRole("patient"));
+                options.AddPolicy("Doctor", policy => policy.RequireRole("doctor"));
+                options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
+                options.AddPolicy("Caregiver", policy => policy.RequireRole("caregiver"));
+
+                options.AddPolicy("MedicalAccess", policy => policy.RequireRole("doctor"));
+                options.AddPolicy("SystemAdmin", policy => policy.RequireRole("admin"));
+                options.AddPolicy("ContentAccess", policy => policy.RequireRole("doctor", "admin", "patient", "caregiver"));
+            });
+            #endregion
 
             var app = builder.Build();
 
@@ -25,6 +111,7 @@ namespace BreastCancer
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
