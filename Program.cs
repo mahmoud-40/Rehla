@@ -1,5 +1,7 @@
 
 using BreastCancer.Context;
+using BreastCancer.Repository.Interface;
+using BreastCancer.Repository.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -23,6 +25,11 @@ namespace BreastCancer
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             });
+
+            builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
+            builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
 
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
