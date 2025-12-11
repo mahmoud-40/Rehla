@@ -65,6 +65,10 @@ namespace BreastCancer.Repository.Repositories
         }
 
 
+        public void Save()
+        {
+            context.SaveChanges();
+        }
 
 
         public async Task<int> SaveAsync()

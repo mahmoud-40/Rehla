@@ -11,10 +11,10 @@ namespace BreastCancer.Context
         {
 
         }
-        public DbSet<User> Users { get; set; }
-        public DbSet<Patient> Patients { get; set; }
-        public DbSet<Doctor> Doctors{ get; set; }
-        public DbSet<Caregiver> Caregivers{ get; set; }
+        public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<Patient> Patients { get; set; }
+        public virtual DbSet<Doctor> Doctors{ get; set; }
+        public virtual DbSet<Caregiver> Caregivers{ get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -6,5 +6,9 @@
         IDoctorRepository DoctorsRepository { get; }
         IPatientRepository PatientsRepository { get; }
         ICaregiverRepository CaregiversRepository { get; }
+
+        Task SaveAsync();
+
+        void Save();
     }
 }

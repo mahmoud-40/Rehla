@@ -21,12 +21,13 @@ namespace BreastCancer
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            // add ConnectionString
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
-            });
+                options.UseLazyLoadingProxies()
+                       .UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
+            }, ServiceLifetime.Scoped);
 
+            builder.Services.AddScoped<ApplicationDbContext>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();

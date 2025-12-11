@@ -19,6 +19,10 @@ namespace BreastCancer.Repository.Repositories
         {
             await _dbSet.AddAsync(entity);
         }
+        public void Add(T entity)
+        {
+            _dbSet.Add(entity);
+        }
 
         public void Delete(T entity)
         {
