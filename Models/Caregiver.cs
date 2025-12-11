@@ -4,14 +4,14 @@ namespace BreastCancer.Models
 {
     public class Caregiver
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
 
-        public string RelationshipToPatient { get; set; }
+        public string RelationshipType { get; set; }
 
         public int UserId { get; set; }
-        public User? User { get; set; }
+        public virtual User? User { get; set; }
 
         public int PatientId { get; set; }
-        public Patient? Patient { get; set; } 
+        public virtual Patient? Patient { get; set; } 
     }
 }

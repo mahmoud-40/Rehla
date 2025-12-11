@@ -2,11 +2,11 @@
 
 namespace BreastCancer.Repository.Interface
 {
-    public interface IPatientRepository :IRepository<Patient>
+    public interface IPatientRepository :IGenericRepository<Patient>
     {
 
-        Task<IEnumerable<Patient>> GetAllWithDoctorAndCaregiverAsync();
-        Task<Patient> GetByIdWithDoctorAndCaregiverAsync(int id);
+        //Task<IEnumerable<Patient>> GetAllWithDoctorAndCaregiverAsync();
+        //Task<Patient> GetByIdWithDoctorAndCaregiverAsync(int id);
 
     }
 }

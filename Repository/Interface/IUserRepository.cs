@@ -2,8 +2,8 @@
 
 namespace BreastCancer.Repository.Interface
 {
-    public interface IUserRepository : IRepository<User>
+    public interface IUserRepository : IGenericRepository<User>
     {
-        Task<User?> GetByEmailAsync(string email);
+        //Task<User?> GetByEmailAsync(string email);
     }
 }

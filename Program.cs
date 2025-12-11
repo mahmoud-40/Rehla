@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
+
 namespace BreastCancer
 {
     public class Program
@@ -23,9 +24,10 @@ namespace BreastCancer
             // add ConnectionString
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
+                options.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             });
 
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();

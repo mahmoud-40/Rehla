@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace BreastCancer.Repository.Repositories
 {
-    public class Repository<T> : IRepository<T> where T : class
+    public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         protected readonly ApplicationDbContext _Context;
         protected readonly DbSet<T> _dbSet;
 
-        public Repository(ApplicationDbContext _Context)
+        public GenericRepository(ApplicationDbContext _Context)
         {
             this._Context = _Context;
             _dbSet = _Context.Set<T>();
