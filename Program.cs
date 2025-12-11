@@ -1,7 +1,12 @@
 
+using BreastCancer.Context;
+using BreastCancer.Repository.Interface;
+using BreastCancer.Repository.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 
 namespace BreastCancer
 {
@@ -16,6 +21,17 @@ namespace BreastCancer
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
+            // add ConnectionString
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
+            });
+
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
+            builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
 
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
