@@ -8,10 +8,11 @@ namespace BreastCancer.Models
 
         public string RelationshipType { get; set; }
 
-        public int UserId { get; set; }
+        public string UserId { get; set; }
         public virtual User? User { get; set; }
 
-        public int PatientId { get; set; }
+        public string PatientId { get; set; }
+        public bool IsDeleted { get; set; } = false;
         public virtual Patient? Patient { get; set; } 
     }
 }

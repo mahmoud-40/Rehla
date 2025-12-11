@@ -16,8 +16,9 @@ namespace BreastCancer.Models
         [Range(0,60)]
         public int YearsOfExperience{ get; set; }
         public bool IsVerified { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
 
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         public virtual User? User { get; set; }
         

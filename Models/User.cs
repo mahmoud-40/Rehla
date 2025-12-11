@@ -16,6 +16,9 @@ namespace BreastCancer.Models
         public DateTime DateOfBirth { get; set; }
         public int Age { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+
 
         [RegularExpression("^(Male|Female)$")]
         public string Gender{ get; set; }
