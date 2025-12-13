@@ -1,41 +1,61 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BreastCancer.Enum;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BreastCancer.Models
 {
-    public class User 
+    public abstract class User
     {
-        public string Id { get; set; }
-        public string FullName { get; set; }
+        [Key] 
+        public required string Id { get; set; } // Keycloak ID
 
+        [Required]
+        [MaxLength(100)]
+        public required string FirstName { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public required string LastName { get; set; }
+
+        public string FullName => $"{FirstName} {LastName}";
+
+        [Required]
         [DataType(DataType.EmailAddress)]
-        public string Email { get; set; }
+        [EmailAddress]
+        public required string Email { get; set; }
 
-        public string Address { get; set; }
-        public string ImageUrl { get; set; }
+        [MaxLength(500)]
+        public string? Address { get; set; }
 
+        public string? ImageUrl { get; set; }
+
+        [DataType(DataType.Date)]
         public DateTime DateOfBirth { get; set; }
-        public int Age { get; set; }
 
-        public bool IsDeleted { get; set; } = false;
+        [NotMapped]
+        public int Age => CalculateAge();
 
-
-
-        [RegularExpression("^(Male|Female)$")]
-        public string Gender{ get; set; }
+        [Required]
+        [EnumDataType(typeof(Gender))]
+        public required Gender Gender { get; set; }
 
         [Phone]
-        public string Phone{ get; set; }
+        public required string Phone { get; set; }
+
+        public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        public virtual string CreatedBy { get; set; }
-        public virtual string UpdatedBy { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
-        public virtual Doctor? Doctor{ get; set; }
-        public virtual Patient? Patient{ get; set; }
-        public virtual Caregiver? Caregiver{ get; set; }
-
-
+        private int CalculateAge()
+        {
+            var today = DateTime.Today;
+            var age = today.Year - DateOfBirth.Year;
+            if (DateOfBirth.Date > today.AddYears(-age)) age--;
+            return age;
+        }
     }
 }

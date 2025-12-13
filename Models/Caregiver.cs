@@ -1,18 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BreastCancer.Models
 {
-    public class Caregiver
+    public class Caregiver : User
     {
-        public string Id { get; set; }
-
-        public string RelationshipType { get; set; }
-
-        public string UserId { get; set; }
-        public virtual User? User { get; set; }
-
+        [MaxLength(50)]
+        public string? RelationshipType { get; set; }
+        [Required]
         public string PatientId { get; set; }
-        public bool IsDeleted { get; set; } = false;
-        public virtual Patient? Patient { get; set; } 
+        public virtual Patient Patient { get; set; }
     }
 }

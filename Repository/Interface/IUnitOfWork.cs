@@ -2,12 +2,11 @@
 {
     public interface IUnitOfWork
     {
-        IUserRepository UsersRepository { get; }
         IDoctorRepository DoctorsRepository { get; }
         IPatientRepository PatientsRepository { get; }
         ICaregiverRepository CaregiversRepository { get; }
 
-        Task SaveAsync();
+        Task<int> SaveAsync();
 
         void Save();
     }
