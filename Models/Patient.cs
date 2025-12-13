@@ -2,21 +2,12 @@
 
 namespace BreastCancer.Models
 {
-    public class Patient
+    public class Patient : User
     {
-        public string Id { get; set; }
-
         [MaxLength(2000)]
-        public string MedicalHistory { get; set; }
-
-        public bool IsDeleted { get; set; } = false;
-
-        public string UserId { get; set; }
-        public virtual User? User { get; set; }
-
-        public string? DoctorId {get;set;}
+        public string? MedicalHistory { get; set; } // TODO: Consider making this a separate entity
+        public string? DoctorId { get; set; }
         public virtual Doctor? Doctor { get; set; }
-
-        public virtual ICollection<Caregiver>? Caregivers { get; set; }
+        public virtual ICollection<Caregiver> Caregivers { get; set; } = new List<Caregiver>();
     }
 }

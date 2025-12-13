@@ -8,7 +8,6 @@ namespace BreastCancer.Repository.Repositories
     {
         private readonly ApplicationDbContext context;
 
-        private IUserRepository _usersRepository;
         private IDoctorRepository _doctorsRepository;
         private IPatientRepository _patientsRepository;
         private ICaregiverRepository _caregiversRepository;
@@ -17,19 +16,6 @@ namespace BreastCancer.Repository.Repositories
             this.context = Context;
         }
 
-        //public IUserRepository UserRepository =>
-        //    _usersRepository ??= new UserRepository(context);
-        public IUserRepository UsersRepository
-        {
-            get
-            {
-                if (_usersRepository == null)
-                {
-                    _usersRepository = new UserRepository(context);
-                }
-                return _usersRepository;
-            }
-        }
         public IDoctorRepository DoctorsRepository
         {
             get
@@ -69,7 +55,6 @@ namespace BreastCancer.Repository.Repositories
         {
             context.SaveChanges();
         }
-
 
         public async Task<int> SaveAsync()
         {

@@ -2,6 +2,7 @@
 using BreastCancer.Context;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
+using BreastCancer.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -30,7 +31,6 @@ namespace BreastCancer
             builder.Services.AddScoped<ApplicationDbContext>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
 
