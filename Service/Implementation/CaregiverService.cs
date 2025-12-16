@@ -12,9 +12,9 @@ namespace BreastCancer.Service.Implementation
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<CaregiverCreateDTO>> GetAllCaregiversAsync()
+        public async Task<IEnumerable<Caregiver>> GetAllCaregiversAsync()
         {
-            return null;
+            return await _unitOfWork.CaregiversRepository.GetAllAsync();
         }
 
         public void CreateCaregiver(CaregiverCreateDTO caregiverDto)

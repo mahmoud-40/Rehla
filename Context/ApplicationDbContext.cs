@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Context
 {
-    public class ApplicationDbContext : DbContext
+    public class BreastCancerDB : IdentityDbContext<ApplicationUser,ApplicationRole ,string>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

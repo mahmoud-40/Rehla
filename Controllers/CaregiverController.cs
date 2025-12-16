@@ -1,5 +1,6 @@
 ﻿using BreastCancer.DTO.request;
 using BreastCancer.Service.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,6 +18,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAllCaregivers()
         {
             var caregivers = await _caregiverService.GetAllCaregiversAsync();
