@@ -1,28 +1,22 @@
 ﻿using BreastCancer.Enum;
+using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BreastCancer.Models
 {
-    public abstract class User
+    public class ApplicationUser : IdentityUser
     {
-        [Key] 
-        public required string Id { get; set; } // Keycloak ID
 
         [Required]
         [MaxLength(100)]
-        public required string FirstName { get; set; }
+        public string FirstName { get; set; }
 
         [Required]
         [MaxLength(100)]
-        public required string LastName { get; set; }
+        public string LastName { get; set; }
 
         public string FullName => $"{FirstName} {LastName}";
-
-        [Required]
-        [DataType(DataType.EmailAddress)]
-        [EmailAddress]
-        public required string Email { get; set; }
 
         [MaxLength(500)]
         public string? Address { get; set; }
@@ -37,10 +31,7 @@ namespace BreastCancer.Models
 
         [Required]
         [EnumDataType(typeof(Gender))]
-        public required Gender Gender { get; set; }
-
-        [Phone]
-        public required string Phone { get; set; }
+        public Gender Gender { get; set; }
 
         public bool IsActive { get; set; } = true;
 

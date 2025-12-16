@@ -2,7 +2,7 @@
 
 namespace BreastCancer.Models
 {
-    public class Doctor : User
+    public class Doctor : ApplicationUser
     {
         [MaxLength(100)]
         public string? Specialization { get; set; }
@@ -14,6 +14,7 @@ namespace BreastCancer.Models
         public int? YearsOfExperience { get; set; }
 
         public bool IsVerified { get; set; } = false;
+
 
         public virtual ICollection<Patient> Patients { get; set; } = new List<Patient>();
     }

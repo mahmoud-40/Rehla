@@ -7,20 +7,11 @@ namespace BreastCancer.Repository.Repositories
 {
     public class CaregiverRepository : GenericRepository<Caregiver> , ICaregiverRepository
     {
-        public CaregiverRepository(ApplicationDbContext context) : base(context)
+        public CaregiverRepository(BreastCancerDB context) : base(context)
         {
 
         }
 
-        //public async Task<IEnumerable<Caregiver>> GetAllWithPatientAsync()
-        //{
-        //    return await _dbSet.Include(c => c.Patient).ToListAsync();
-        //}
 
-        //public async Task<Caregiver> GetByIdWithPatientAsync(int id)
-        //{
-        //    return await _dbSet.Include(c=> c.Id == id).FirstOrDefaultAsync(c=> c.Id == id);
-
-        //}
     }
 }

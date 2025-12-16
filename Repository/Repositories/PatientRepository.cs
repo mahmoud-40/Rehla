@@ -7,7 +7,7 @@ namespace BreastCancer.Repository.Repositories
 {
     public class PatientRepository : GenericRepository<Patient>, IPatientRepository
     {
-        public PatientRepository(ApplicationDbContext context) : base(context)
+        public PatientRepository(BreastCancerDB context) : base(context)
         {
 
         }

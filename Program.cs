@@ -1,5 +1,6 @@
 
 using BreastCancer.Context;
+using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
 using BreastCancer.Service.Implementation;
@@ -23,13 +24,35 @@ namespace BreastCancer
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+
+            // add Identity
+            builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            {
+                // Password Setting
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+
+                // User Email Setting
+                options.User.RequireUniqueEmail = true;
+
+                // Lockout Settings
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+
+            }).AddEntityFrameworkStores<BreastCancerDB>();
+
+            builder.Services.AddDbContext<BreastCancerDB>(options =>
             {
                 options.UseLazyLoadingProxies()
                        .UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             }, ServiceLifetime.Scoped);
 
-            builder.Services.AddScoped<ApplicationDbContext>();
+
+
+            
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BreastCancer.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
+    [DbContext(typeof(BreastCancerDB))]
     [Migration("20251213135557_V3__Make_User_Abstract_Convert_Gender_To_Enum")]
     partial class V3__Make_User_Abstract_Convert_Gender_To_Enum
     {
