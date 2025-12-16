@@ -7,10 +7,10 @@ namespace BreastCancer.Repository.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        protected readonly ApplicationDbContext _Context;
+        protected readonly BreastCancerDB _Context;
         protected readonly DbSet<T> _dbSet;
 
-        public GenericRepository(ApplicationDbContext _Context)
+        public GenericRepository(BreastCancerDB _Context)
         {
             this._Context = _Context;
             _dbSet = _Context.Set<T>();

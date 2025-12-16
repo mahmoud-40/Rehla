@@ -6,12 +6,12 @@ namespace BreastCancer.Repository.Repositories
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private readonly ApplicationDbContext context;
+        private readonly BreastCancerDB context;
 
         private IDoctorRepository _doctorsRepository;
         private IPatientRepository _patientsRepository;
         private ICaregiverRepository _caregiversRepository;
-        public UnitOfWork(ApplicationDbContext Context)
+        public UnitOfWork(BreastCancerDB Context)
         {
             this.context = Context;
         }

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BreastCancer.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
+    [DbContext(typeof(BreastCancerDB))]
     [Migration("20251211221250_AddModels")]
     partial class AddModels
     {

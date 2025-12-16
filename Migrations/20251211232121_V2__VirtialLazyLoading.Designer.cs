@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BreastCancer.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
+    [DbContext(typeof(BreastCancerDB))]
     [Migration("20251211232121_V2__VirtialLazyLoading")]
     partial class V2__VirtialLazyLoading
     {
