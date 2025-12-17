@@ -59,6 +59,7 @@ namespace BreastCancer
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
+            builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
 
             #region Swagger

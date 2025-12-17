@@ -12,6 +12,11 @@ namespace BreastCancer.Repository.Repositories
 
         }
 
+        public async Task<Doctor?> GetByIdAsync(string id)
+        {
+            return await _dbSet.FindAsync(id);
+        }
+
         //public async Task<IEnumerable<Doctor>> GetAllWithPatientsAsync()
         //{
         //    return await _dbSet.Include(d => d.Patients).ToListAsync();
