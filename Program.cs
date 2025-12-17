@@ -6,16 +6,19 @@ using BreastCancer.Repository.Repositories;
 using BreastCancer.Service.Implementation;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
+using System.Threading.Tasks;
 
 
 namespace BreastCancer
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +45,8 @@ namespace BreastCancer
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 
-            }).AddEntityFrameworkStores<BreastCancerDB>();
+            }).AddEntityFrameworkStores<BreastCancerDB>()
+            .AddDefaultTokenProviders();
 
             builder.Services.AddDbContext<BreastCancerDB>(options =>
             {
@@ -50,14 +54,38 @@ namespace BreastCancer
                        .UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             }, ServiceLifetime.Scoped);
 
-
-
-            
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
+
+            #region JWT Configuration
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options => {
+                var SignKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"] 
+                    ?? throw new Exception("JWT:Key is missing from configuration")));
+
+                options.SaveToken = true;
+                options.RequireHttpsMetadata = false;
+                options.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = false,
+                    ValidIssuer = "https://localhost:44305/",
+                    // Secret Key
+                    IssuerSigningKey = SignKey
+
+                };
+
+            });
+            #endregion
 
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
@@ -90,59 +118,22 @@ namespace BreastCancer
             });
             #endregion
 
-            #region Keycloak Authentication
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.Authority = builder.Configuration["Keycloak:Authority"];
-                options.Audience = builder.Configuration["Keycloak:Audience"];
-                options.RequireHttpsMetadata = false;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["Keycloak:Authority"],
-                    ValidAudience = builder.Configuration["Keycloak:Audience"],
-                    RoleClaimType = "realm_access.roles" 
-                };
 
-                options.Events = new JwtBearerEvents
-                {
-                    OnAuthenticationFailed = context =>
-                    {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogError("Authentication failed: {Exception}", context.Exception.Message);
-                        return Task.CompletedTask;
-                    },
-                    OnTokenValidated = context =>
-                    {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("Token validated for user: {User}", context.Principal.Identity.Name);
-                        return Task.CompletedTask;
-                    }
-                };
-            });
-
-            builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("Patient", policy => policy.RequireRole("patient"));
-                options.AddPolicy("Doctor", policy => policy.RequireRole("doctor"));
-                options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
-                options.AddPolicy("Caregiver", policy => policy.RequireRole("caregiver"));
-
-                options.AddPolicy("MedicalAccess", policy => policy.RequireRole("doctor"));
-                options.AddPolicy("SystemAdmin", policy => policy.RequireRole("admin"));
-                options.AddPolicy("ContentAccess", policy => policy.RequireRole("doctor", "admin", "patient", "caregiver"));
-            });
-            #endregion
 
             var app = builder.Build();
+
+            //using (var scope = app.Services.CreateScope())
+            //{
+            //    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+
+            //    string[] roles = new[] { "Admin", "Patient", "Doctor", "Caregiver" };
+
+            //    foreach (var role in roles)
+            //    {
+            //        if (!await roleManager.RoleExistsAsync(role))
+            //            await roleManager.CreateAsync(new ApplicationRole(role) { NormalizedName = role.ToUpper() });
+            //    }
+            //}
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Context
 {
-    public class BreastCancerDB : IdentityDbContext<ApplicationUser>
+    public class BreastCancerDB : IdentityDbContext<ApplicationUser,ApplicationRole,string>
     {
         public BreastCancerDB(DbContextOptions options)
             : base(options)
@@ -40,11 +40,11 @@ namespace BreastCancer.Context
                 .HasForeignKey(c => c.PatientId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<IdentityRole>().HasData(
-                new IdentityRole { Id = "1", Name = "Admin", NormalizedName = "ADMIN" },
-                new IdentityRole { Id = "2", Name = "Patient", NormalizedName = "PATIENT" },
-                new IdentityRole { Id = "3", Name = "Doctor", NormalizedName = "DOCTOR" },
-                new IdentityRole { Id = "4", Name = "Caregiver", NormalizedName = "CAREGIVER" }
+            modelBuilder.Entity<ApplicationRole>().HasData(
+                new ApplicationRole { Id = "1", Name = "Admin", NormalizedName = "ADMIN" },
+                new ApplicationRole { Id = "2", Name = "Patient", NormalizedName = "PATIENT" },
+                new ApplicationRole { Id = "3", Name = "Doctor", NormalizedName = "DOCTOR" },
+                new ApplicationRole { Id = "4", Name = "Caregiver", NormalizedName = "CAREGIVER" }
             );
         }
 

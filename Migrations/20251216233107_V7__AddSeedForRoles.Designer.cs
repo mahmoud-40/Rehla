@@ -4,6 +4,7 @@ using BreastCancer.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BreastCancer.Migrations
 {
     [DbContext(typeof(BreastCancerDB))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251216233107_V7__AddSeedForRoles")]
+    partial class V7__AddSeedForRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
