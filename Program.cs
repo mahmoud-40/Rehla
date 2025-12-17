@@ -25,7 +25,7 @@ namespace BreastCancer
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
 
-            // add Identity
+            #region Identity 
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
                 // Password Setting
@@ -43,6 +43,7 @@ namespace BreastCancer
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 
             }).AddEntityFrameworkStores<BreastCancerDB>();
+            #endregion
 
             builder.Services.AddDbContext<BreastCancerDB>(options =>
             {
@@ -58,6 +59,7 @@ namespace BreastCancer
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
