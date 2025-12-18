@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BreastCancer.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/patient")]
     [ApiController]
     [Authorize]
     public class PatientController : ControllerBase
@@ -25,29 +25,25 @@ namespace BreastCancer.Controllers
         /// <param name="pageNumber">Page number (default: 1)</param>
         /// <param name="pageSize">Page size (default: 10)</param>
         /// <returns>List of patients</returns>
+        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpGet]
-        [Authorize(Policy = "ContentAccess")]
+        [Authorize(Policy = "SystemAdmin")]
         public async Task<IActionResult> GetAllPatients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                if (pageNumber < 1)
-                {
-                    return BadRequest(new { message = "Page number must be greater than 0." });
-                }
-
-                if (pageSize < 1 || pageSize > 100)
-                {
-                    return BadRequest(new { message = "Page size must be between 1 and 100." });
-                }
-
                 var patients = await _patientService.GetAllPatientsAsync(pageNumber, pageSize);
                 return Ok(patients);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while retrieving all patients");
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving all patients");
-                return StatusCode(500, new { message = "An error occurred while retrieving patients." });
+                return BadRequest(new { message = "An error occurred while retrieving patients." });
             }
         }
 
@@ -56,17 +52,13 @@ namespace BreastCancer.Controllers
         /// </summary>
         /// <param name="id">Patient ID</param>
         /// <returns>Patient details</returns>
+        /// <remarks>ContentAccess policy allows access to users with roles: Doctor, Admin, Patient, or Caregiver</remarks>
         [HttpGet("{id}")]
         [Authorize(Policy = "ContentAccess")]
         public async Task<IActionResult> GetPatientById(string id)
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
-                {
-                    return BadRequest(new { message = "Patient ID is required." });
-                }
-
                 var patient = await _patientService.GetPatientByIdAsync(id);
                 if (patient == null)
                 {
@@ -75,10 +67,15 @@ namespace BreastCancer.Controllers
 
                 return Ok(patient);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while retrieving patient with ID: {PatientId}", id);
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving patient with ID: {PatientId}", id);
-                return StatusCode(500, new { message = "An error occurred while retrieving the patient." });
+                return BadRequest(new { message = "An error occurred while retrieving the patient." });
             }
         }
 
@@ -87,8 +84,9 @@ namespace BreastCancer.Controllers
         /// </summary>
         /// <param name="patientDto">Patient creation data</param>
         /// <returns>Created patient</returns>
+        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpPost]
-        [Authorize(Policy = "MedicalAccess")]
+        [Authorize(Policy = "SystemAdmin")]
         public async Task<IActionResult> CreatePatient([FromBody] PatientCreateDTO patientDto)
         {
             try
@@ -104,6 +102,11 @@ namespace BreastCancer.Controllers
                     new { id = createdPatient.Id },
                     createdPatient);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while creating patient");
+                return BadRequest(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while creating patient");
@@ -112,7 +115,7 @@ namespace BreastCancer.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating patient");
-                return StatusCode(500, new { message = "An error occurred while creating the patient." });
+                return BadRequest(new { message = "An error occurred while creating the patient." });
             }
         }
 
@@ -122,17 +125,13 @@ namespace BreastCancer.Controllers
         /// <param name="id">Patient ID</param>
         /// <param name="patientDto">Patient update data</param>
         /// <returns>Updated patient</returns>
+        /// <remarks>ContentAccess policy allows access to users with roles: Doctor, Admin, Patient, or Caregiver</remarks>
         [HttpPut("{id}")]
-        [Authorize(Policy = "MedicalAccess")]
+        [Authorize(Policy = "ContentAccess")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdateDTO patientDto)
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
-                {
-                    return BadRequest(new { message = "Patient ID is required." });
-                }
-
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -146,6 +145,11 @@ namespace BreastCancer.Controllers
 
                 return Ok(updatedPatient);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while updating patient with ID: {PatientId}", id);
+                return BadRequest(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while updating patient with ID: {PatientId}", id);
@@ -154,7 +158,7 @@ namespace BreastCancer.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating patient with ID: {PatientId}", id);
-                return StatusCode(500, new { message = "An error occurred while updating the patient." });
+                return BadRequest(new { message = "An error occurred while updating the patient." });
             }
         }
 
@@ -162,30 +166,38 @@ namespace BreastCancer.Controllers
         /// Delete a patient (soft delete)
         /// </summary>
         /// <param name="id">Patient ID</param>
-        /// <returns>Success status</returns>
+        /// <returns>No content on success</returns>
+        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "MedicalAccess")]
-        public async Task<IActionResult> DeletePatient(string id)
+        [Authorize(Policy = "SystemAdmin")]
+        public async Task<IActionResult> DeletePatient(string id, [FromQuery] bool hardDelete = false)
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
+                if (hardDelete)
                 {
-                    return BadRequest(new { message = "Patient ID is required." });
+                    await _patientService.HardDeletePatientAsync(id);
                 }
-
-                var deleted = await _patientService.DeletePatientAsync(id);
-                if (!deleted)
+                else
                 {
-                    return NotFound(new { message = $"Patient with ID '{id}' not found." });
+                    await _patientService.DeletePatientAsync(id);
                 }
-
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while deleting patient with ID: {PatientId}", id);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation while deleting patient with ID: {PatientId}", id);
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting patient with ID: {PatientId}", id);
-                return StatusCode(500, new { message = "An error occurred while deleting the patient." });
+                return BadRequest(new { message = "An error occurred while deleting the patient." });
             }
         }
     }

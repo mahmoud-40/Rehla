@@ -9,7 +9,8 @@ namespace BreastCancer.Service.Interface
         Task<IEnumerable<PatientResponseDTO>> GetAllPatientsAsync(int pageNumber = 1, int pageSize = 10);
         Task<PatientResponseDTO> CreatePatientAsync(PatientCreateDTO patientDto);
         Task<PatientResponseDTO?> UpdatePatientAsync(string id, PatientUpdateDTO patientDto);
-        Task<bool> DeletePatientAsync(string id);
+        Task DeletePatientAsync(string id);
+        Task HardDeletePatientAsync(string id);
     }
 }
 

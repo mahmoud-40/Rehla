@@ -62,6 +62,9 @@ namespace BreastCancer
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
 
+            // AutoMapper
+            builder.Services.AddAutoMapper(typeof(Program));
+
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
             {
@@ -134,14 +137,14 @@ namespace BreastCancer
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("Patient", policy => policy.RequireRole("patient"));
-                options.AddPolicy("Doctor", policy => policy.RequireRole("doctor"));
-                options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
-                options.AddPolicy("Caregiver", policy => policy.RequireRole("caregiver"));
+                options.AddPolicy("Patient", policy => policy.RequireRole("Patient"));
+                options.AddPolicy("Doctor", policy => policy.RequireRole("Doctor"));
+                options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("Caregiver", policy => policy.RequireRole("Caregiver"));
 
-                options.AddPolicy("MedicalAccess", policy => policy.RequireRole("doctor"));
-                options.AddPolicy("SystemAdmin", policy => policy.RequireRole("admin"));
-                options.AddPolicy("ContentAccess", policy => policy.RequireRole("doctor", "admin", "patient", "caregiver"));
+                options.AddPolicy("MedicalAccess", policy => policy.RequireRole("Doctor"));
+                options.AddPolicy("SystemAdmin", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("ContentAccess", policy => policy.RequireRole("Doctor", "Admin", "Patient", "Caregiver"));
             });
             #endregion
 

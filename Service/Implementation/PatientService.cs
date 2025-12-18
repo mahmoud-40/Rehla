@@ -1,3 +1,4 @@
+using AutoMapper;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -14,28 +15,36 @@ namespace BreastCancer.Service.Implementation
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<PatientService> _logger;
+        private readonly IMapper _mapper;
 
         public PatientService(
             IUnitOfWork unitOfWork,
             UserManager<ApplicationUser> userManager,
-            ILogger<PatientService> logger)
+            ILogger<PatientService> logger,
+            IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _logger = logger;
+            _mapper = mapper;
         }
 
         public async Task<PatientResponseDTO?> GetPatientByIdAsync(string id)
         {
             try
             {
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new ArgumentException("Patient ID is required.", nameof(id));
+                }
+
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
                 if (patient == null)
                 {
                     return null;
                 }
 
-                return MapToResponseDTO(patient);
+                return _mapper.Map<PatientResponseDTO>(patient);
             }
             catch (Exception ex)
             {
@@ -48,8 +57,18 @@ namespace BreastCancer.Service.Implementation
         {
             try
             {
+                if (pageNumber < 1)
+                {
+                    throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
+                }
+
+                if (pageSize < 1 || pageSize > 100)
+                {
+                    throw new ArgumentException("Page size must be between 1 and 100.", nameof(pageSize));
+                }
+
                 var patients = await _unitOfWork.PatientsRepository.GetPagedAsync(pageNumber, pageSize);
-                return patients.Select(MapToResponseDTO);
+                return _mapper.Map<IEnumerable<PatientResponseDTO>>(patients);
             }
             catch (Exception ex)
             {
@@ -79,6 +98,9 @@ namespace BreastCancer.Service.Implementation
                     }
                 }
 
+                // Generate temporary password (always generate since Password is not in DTO)
+                var temporaryPassword = GenerateTemporaryPassword();
+
                 var patient = new Patient
                 {
                     FirstName = patientDto.FirstName,
@@ -88,8 +110,8 @@ namespace BreastCancer.Service.Implementation
                     PhoneNumber = patientDto.PhoneNumber,
                     Address = patientDto.Address,
                     ImageUrl = patientDto.ImageUrl,
-                    DateOfBirth = patientDto.DateOfBirth,
-                    Gender = patientDto.Gender,
+                    DateOfBirth = patientDto.DateOfBirth ?? DateTime.UtcNow.AddYears(-30), // Default to 30 years ago if not provided
+                    Gender = patientDto.Gender ?? Enum.Gender.PreferNotToSay, // Default gender if not provided
                     MedicalHistory = patientDto.MedicalHistory,
                     DoctorId = patientDto.DoctorId,
                     IsActive = true,
@@ -97,7 +119,7 @@ namespace BreastCancer.Service.Implementation
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await _userManager.CreateAsync(patient, patientDto.Password);
+                var result = await _userManager.CreateAsync(patient, temporaryPassword);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
@@ -112,7 +134,7 @@ namespace BreastCancer.Service.Implementation
                 var createdPatient = await _unitOfWork.PatientsRepository.GetByIdAsync(patient.Id);
 
                 _logger.LogInformation("Patient created successfully with ID: {PatientId}", patient.Id);
-                return MapToResponseDTO(createdPatient!);
+                return _mapper.Map<PatientResponseDTO>(createdPatient!);
             }
             catch (Exception ex)
             {
@@ -125,6 +147,11 @@ namespace BreastCancer.Service.Implementation
         {
             try
             {
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new ArgumentException("Patient ID is required.", nameof(id));
+                }
+
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
                 if (patient == null)
                 {
@@ -189,7 +216,7 @@ namespace BreastCancer.Service.Implementation
 
                 var updatedPatient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
                 _logger.LogInformation("Patient updated successfully with ID: {PatientId}", id);
-                return MapToResponseDTO(updatedPatient!);
+                return _mapper.Map<PatientResponseDTO>(updatedPatient!);
             }
             catch (Exception ex)
             {
@@ -198,14 +225,19 @@ namespace BreastCancer.Service.Implementation
             }
         }
 
-        public async Task<bool> DeletePatientAsync(string id)
+        public async Task DeletePatientAsync(string id)
         {
             try
             {
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new ArgumentException("Patient ID is required.", nameof(id));
+                }
+
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
                 if (patient == null)
                 {
-                    return false;
+                    throw new InvalidOperationException($"Patient with ID '{id}' not found.");
                 }
 
                 // Soft delete by setting IsActive to false
@@ -216,7 +248,6 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.PatientsRepository.SaveChangesAsync();
 
                 _logger.LogInformation("Patient soft deleted successfully with ID: {PatientId}", id);
-                return true;
             }
             catch (Exception ex)
             {
@@ -225,29 +256,74 @@ namespace BreastCancer.Service.Implementation
             }
         }
 
-        private PatientResponseDTO MapToResponseDTO(Patient patient)
+        public async Task HardDeletePatientAsync(string id)
         {
-            return new PatientResponseDTO
+            try
             {
-                Id = patient.Id,
-                FirstName = patient.FirstName,
-                LastName = patient.LastName,
-                FullName = patient.FullName,
-                Email = patient.Email ?? string.Empty,
-                PhoneNumber = patient.PhoneNumber,
-                Address = patient.Address,
-                ImageUrl = patient.ImageUrl,
-                DateOfBirth = patient.DateOfBirth,
-                Age = patient.Age,
-                Gender = patient.Gender,
-                IsActive = patient.IsActive,
-                MedicalHistory = patient.MedicalHistory,
-                DoctorId = patient.DoctorId,
-                DoctorName = patient.Doctor != null ? patient.Doctor.FullName : null,
-                CreatedAt = patient.CreatedAt,
-                UpdatedAt = patient.UpdatedAt
-            };
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new ArgumentException("Patient ID is required.", nameof(id));
+                }
+
+                var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
+                if (patient == null)
+                {
+                    throw new InvalidOperationException($"Patient with ID '{id}' not found.");
+                }
+
+                // Hard delete: Remove from Identity and database
+                var result = await _userManager.DeleteAsync(patient);
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    throw new InvalidOperationException($"Failed to delete patient: {errors}");
+                }
+
+                _logger.LogInformation("Patient hard deleted successfully with ID: {PatientId}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting patient with ID: {PatientId}", id);
+                throw;
+            }
         }
+
+        private string GenerateTemporaryPassword()
+        {
+            // Generate a secure temporary password that meets Identity requirements
+            // Must have: uppercase, lowercase, digit, non-alphanumeric, min 8 chars
+            const string upperCase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lowerCase = "abcdefghijkmnpqrstuvwxyz";
+            const string digits = "23456789";
+            const string specialChars = "!@#$%^&*";
+            const int length = 12;
+
+            var random = new Random();
+            var password = new char[length];
+            
+            // Ensure at least one of each required character type
+            password[0] = upperCase[random.Next(upperCase.Length)];
+            password[1] = lowerCase[random.Next(lowerCase.Length)];
+            password[2] = digits[random.Next(digits.Length)];
+            password[3] = specialChars[random.Next(specialChars.Length)];
+
+            // Fill the rest randomly
+            var allChars = upperCase + lowerCase + digits + specialChars;
+            for (int i = 4; i < length; i++)
+            {
+                password[i] = allChars[random.Next(allChars.Length)];
+            }
+
+            // Shuffle the password array
+            for (int i = 0; i < length; i++)
+            {
+                var j = random.Next(i, length);
+                (password[i], password[j]) = (password[j], password[i]);
+            }
+
+            return new string(password);
+        }
+
     }
 }
 

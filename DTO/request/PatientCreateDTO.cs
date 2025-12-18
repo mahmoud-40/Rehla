@@ -17,27 +17,19 @@ namespace BreastCancer.DTO.request
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
         [Phone]
-        public string PhoneNumber { get; set; } = string.Empty;
-
-        [Required]
-        [DataType(DataType.Password)]
-        [MinLength(8)]
-        public string Password { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
 
         [MaxLength(500)]
         public string? Address { get; set; }
 
         public string? ImageUrl { get; set; }
 
-        [Required]
         [DataType(DataType.Date)]
-        public DateTime DateOfBirth { get; set; }
+        public DateTime? DateOfBirth { get; set; }
 
-        [Required]
         [EnumDataType(typeof(Gender))]
-        public Gender Gender { get; set; }
+        public Gender? Gender { get; set; }
 
         [MaxLength(2000)]
         public string? MedicalHistory { get; set; }
