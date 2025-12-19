@@ -27,7 +27,7 @@ namespace BreastCancer.Controllers
         /// <returns>List of patients</returns>
         /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpGet]
-        [Authorize(Policy = "SystemAdmin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllPatients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
@@ -54,7 +54,7 @@ namespace BreastCancer.Controllers
         /// <returns>Patient details</returns>
         /// <remarks>ContentAccess policy allows access to users with roles: Doctor, Admin, Patient, or Caregiver</remarks>
         [HttpGet("{id}")]
-        [Authorize(Policy = "ContentAccess")]
+        [Authorize(Roles = "Doctor, Admin, Patient, Caregiver")]
         public async Task<IActionResult> GetPatientById(string id)
         {
             try
@@ -86,7 +86,7 @@ namespace BreastCancer.Controllers
         /// <returns>Created patient</returns>
         /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpPost]
-        [Authorize(Policy = "SystemAdmin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreatePatient([FromBody] PatientCreateDTO patientDto)
         {
             try
@@ -127,7 +127,7 @@ namespace BreastCancer.Controllers
         /// <returns>Updated patient</returns>
         /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
         [HttpPut("{id}")]
-        [Authorize(Policy = "AdminOrPatient")]
+        [Authorize(Roles = "Admin, Patient")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdateDTO patientDto)
         {
             try
@@ -169,7 +169,7 @@ namespace BreastCancer.Controllers
         /// <returns>No content on success</returns>
         /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminOrPatient")]
+        [Authorize(Roles = "Admin, Patient")]
         public async Task<IActionResult> DeletePatient(string id)
         {
             try
@@ -201,7 +201,7 @@ namespace BreastCancer.Controllers
         /// <returns>No content on success</returns>
         /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
         [HttpDelete("{id}/HardDelete")]
-        [Authorize(Policy = "SystemAdmin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> HardDeletePatient(string id)
         {
             try
