@@ -110,8 +110,8 @@ namespace BreastCancer.Service.Implementation
                     PhoneNumber = patientDto.PhoneNumber,
                     Address = patientDto.Address,
                     ImageUrl = patientDto.ImageUrl,
-                    DateOfBirth = patientDto.DateOfBirth ?? DateTime.UtcNow.AddYears(-30), // Default to 30 years ago if not provided
-                    Gender = patientDto.Gender ?? Enum.Gender.PreferNotToSay, // Default gender if not provided
+                    DateOfBirth = patientDto.DateOfBirth,
+                    Gender = patientDto.Gender,
                     MedicalHistory = patientDto.MedicalHistory,
                     DoctorId = patientDto.DoctorId,
                     IsActive = true,

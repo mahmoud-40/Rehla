@@ -1,5 +1,6 @@
 
 using BreastCancer.Context;
+using BreastCancer.Mapping;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
@@ -63,7 +64,7 @@ namespace BreastCancer
             builder.Services.AddScoped<IEmailService, EmailService>();
 
             // AutoMapper
-            builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
             #region Swagger
             builder.Services.AddSwaggerGen(c =>
@@ -145,6 +146,7 @@ namespace BreastCancer
                 options.AddPolicy("MedicalAccess", policy => policy.RequireRole("Doctor"));
                 options.AddPolicy("SystemAdmin", policy => policy.RequireRole("Admin"));
                 options.AddPolicy("ContentAccess", policy => policy.RequireRole("Doctor", "Admin", "Patient", "Caregiver"));
+                options.AddPolicy("AdminOrPatient", policy => policy.RequireRole("Admin", "Patient"));
             });
             #endregion
 

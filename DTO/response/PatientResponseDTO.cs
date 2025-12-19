@@ -12,9 +12,9 @@ namespace BreastCancer.DTO.response
         public string? PhoneNumber { get; set; }
         public string? Address { get; set; }
         public string? ImageUrl { get; set; }
-        public DateTime DateOfBirth { get; set; }
-        public int Age { get; set; }
-        public Gender Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public int? Age { get; set; }
+        public Gender? Gender { get; set; }
         public bool IsActive { get; set; }
         public string? MedicalHistory { get; set; }
         public string? DoctorId { get; set; }

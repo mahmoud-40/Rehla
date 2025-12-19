@@ -125,9 +125,9 @@ namespace BreastCancer.Controllers
         /// <param name="id">Patient ID</param>
         /// <param name="patientDto">Patient update data</param>
         /// <returns>Updated patient</returns>
-        /// <remarks>ContentAccess policy allows access to users with roles: Doctor, Admin, Patient, or Caregiver</remarks>
+        /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
         [HttpPut("{id}")]
-        [Authorize(Policy = "ContentAccess")]
+        [Authorize(Policy = "AdminOrPatient")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdateDTO patientDto)
         {
             try
@@ -167,21 +167,14 @@ namespace BreastCancer.Controllers
         /// </summary>
         /// <param name="id">Patient ID</param>
         /// <returns>No content on success</returns>
-        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
+        /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
         [HttpDelete("{id}")]
-        [Authorize(Policy = "SystemAdmin")]
-        public async Task<IActionResult> DeletePatient(string id, [FromQuery] bool hardDelete = false)
+        [Authorize(Policy = "AdminOrPatient")]
+        public async Task<IActionResult> DeletePatient(string id)
         {
             try
             {
-                if (hardDelete)
-                {
-                    await _patientService.HardDeletePatientAsync(id);
-                }
-                else
-                {
-                    await _patientService.DeletePatientAsync(id);
-                }
+                await _patientService.DeletePatientAsync(id);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -198,6 +191,38 @@ namespace BreastCancer.Controllers
             {
                 _logger.LogError(ex, "Error deleting patient with ID: {PatientId}", id);
                 return BadRequest(new { message = "An error occurred while deleting the patient." });
+            }
+        }
+
+        /// <summary>
+        /// Hard delete a patient (permanently remove from database)
+        /// </summary>
+        /// <param name="id">Patient ID</param>
+        /// <returns>No content on success</returns>
+        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
+        [HttpDelete("{id}/HardDelete")]
+        [Authorize(Policy = "SystemAdmin")]
+        public async Task<IActionResult> HardDeletePatient(string id)
+        {
+            try
+            {
+                await _patientService.HardDeletePatientAsync(id);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument while hard deleting patient with ID: {PatientId}", id);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation while hard deleting patient with ID: {PatientId}", id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting patient with ID: {PatientId}", id);
+                return BadRequest(new { message = "An error occurred while hard deleting the patient." });
             }
         }
     }
