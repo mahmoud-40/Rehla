@@ -24,14 +24,13 @@ namespace BreastCancer.Models
         public string? ImageUrl { get; set; }
 
         [DataType(DataType.Date)]
-        public DateTime DateOfBirth { get; set; }
+        public DateTime? DateOfBirth { get; set; }
 
         [NotMapped]
-        public int Age => CalculateAge();
+        public int? Age => DateOfBirth.HasValue ? CalculateAge() : null;
 
-        [Required]
         [EnumDataType(typeof(Gender))]
-        public Gender Gender { get; set; }
+        public Gender? Gender { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -43,9 +42,10 @@ namespace BreastCancer.Models
 
         private int CalculateAge()
         {
+            if (!DateOfBirth.HasValue) return 0;
             var today = DateTime.Today;
-            var age = today.Year - DateOfBirth.Year;
-            if (DateOfBirth.Date > today.AddYears(-age)) age--;
+            var age = today.Year - DateOfBirth.Value.Year;
+            if (DateOfBirth.Value.Date > today.AddYears(-age)) age--;
             return age;
         }
     }
