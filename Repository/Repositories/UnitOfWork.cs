@@ -11,6 +11,7 @@ namespace BreastCancer.Repository.Repositories
         private IDoctorRepository _doctorsRepository;
         private IPatientRepository _patientsRepository;
         private ICaregiverRepository _caregiversRepository;
+        private IRefreshTokenRepository _refreshTokenRepository;
         public UnitOfWork(BreastCancerDB Context)
         {
             this.context = Context;
@@ -50,7 +51,17 @@ namespace BreastCancer.Repository.Repositories
             }
         }
 
-
+        public IRefreshTokenRepository RefreshTokenRepository
+        {
+            get
+            {
+                if (_refreshTokenRepository == null)
+                {
+                    _refreshTokenRepository = new RefreshTokenRepository(context);
+                }
+                return _refreshTokenRepository;
+            }
+        }
         public void Save()
         {
             context.SaveChanges();

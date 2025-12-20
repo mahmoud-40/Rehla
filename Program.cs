@@ -1,6 +1,8 @@
 
 using BreastCancer.Context;
+using BreastCancer.Mapping;
 using BreastCancer.Models;
+using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
 using BreastCancer.Service.Implementation;
@@ -24,11 +26,17 @@ namespace BreastCancer
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                     options.JsonSerializerOptions.Converters.Add(
+                        new System.Text.Json.Serialization.JsonStringEnumConverter()
+                    );
+                });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
 
-            // add Identity
+            #region Identity 
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
                 // Password Setting
@@ -45,8 +53,8 @@ namespace BreastCancer
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 
-            }).AddEntityFrameworkStores<BreastCancerDB>()
-            .AddDefaultTokenProviders();
+            }).AddEntityFrameworkStores<BreastCancerDB>();
+            #endregion
 
             builder.Services.AddDbContext<BreastCancerDB>(options =>
             {
@@ -54,12 +62,18 @@ namespace BreastCancer
                        .UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             }, ServiceLifetime.Scoped);
 
+            builder.Services.Configure<JwtOptions>
+                (builder.Configuration.GetSection(JwtOptions.JwtOptionsKey));
+
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IAuthTokenService,AuthTokenService>();
+
 
             #region JWT Configuration
             builder.Services.AddAuthentication(options =>
@@ -68,19 +82,22 @@ namespace BreastCancer
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options => {
-                var SignKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"] 
-                    ?? throw new Exception("JWT:Key is missing from configuration")));
+
+                var jwtOptions = builder.Configuration.GetSection(JwtOptions.JwtOptionsKey)
+                    .Get<JwtOptions>() ?? throw new ArgumentException(nameof(JwtOptions));
 
                 options.SaveToken = true;
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters()
                 {
                     ValidateIssuer = true,
-                    ValidateAudience = false,
-                    ValidIssuer = "https://localhost:44305/",
+                    ValidateAudience = true,
+                    ValidAudience = jwtOptions.Audience,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidateLifetime = true,
                     // Secret Key
-                    IssuerSigningKey = SignKey
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+                    ClockSkew = TimeSpan.Zero
 
                 };
 
@@ -121,19 +138,6 @@ namespace BreastCancer
 
 
             var app = builder.Build();
-
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
-
-            //    string[] roles = new[] { "Admin", "Patient", "Doctor", "Caregiver" };
-
-            //    foreach (var role in roles)
-            //    {
-            //        if (!await roleManager.RoleExistsAsync(role))
-            //            await roleManager.CreateAsync(new ApplicationRole(role) { NormalizedName = role.ToUpper() });
-            //    }
-            //}
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

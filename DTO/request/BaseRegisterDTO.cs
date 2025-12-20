@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BreastCancer.Enum;
+using System.ComponentModel.DataAnnotations;
 
 namespace BreastCancer.DTO.request
 {
-    public class RegisterDTO
+    public abstract class BaseRegisterDTO
     {
         [MinLength(3)]
         public string FirstName { get; set; }
@@ -18,10 +19,11 @@ namespace BreastCancer.DTO.request
 
         [EmailAddress]
         public string Email { get; set; }
+        public string Address { get; set; }
 
         [Required]
-        [RegularExpression("^(Patient|Doctor|Caregiver)$",
-        ErrorMessage = "Role must be Patient, Doctor, or Caregiver")]
+        public Gender Gender { get; set; }
+
         public string Role { get; set; }
 
         [DataType(DataType.Password)]

@@ -1,5 +1,6 @@
 ﻿using BreastCancer.DTO.request;
 using BreastCancer.Service.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +8,8 @@ namespace BreastCancer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles =("Caregiver"))]
+
     public class CaregiverController : ControllerBase
     {
         private readonly ICaregiverService _caregiverService;

@@ -1,33 +1,51 @@
-﻿using BreastCancer.DTO.request;
+﻿using BreastCancer.Context;
+using BreastCancer.DTO.request;
+using BreastCancer.DTO.response;
 using BreastCancer.Models;
+using BreastCancer.Options;
+using BreastCancer.Repository.Interface;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BreastCancer.Service.Implementation
 {
     public class AccountService : IAccountService
     {
-        private readonly UserManager<ApplicationUser> userManager;
-        private readonly RoleManager<ApplicationRole> roleManager;
-        private readonly IConfiguration configuration;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
+        private readonly JwtOptions _jwtOptions;
+        private readonly IUnitOfWork _unitOfWork;
+
+        private readonly IAuthTokenService _authToken;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
-            IConfiguration configuration)
+            IUnitOfWork unitOfWork,
+            IOptions<JwtOptions> jwtOptions,
+            IAuthTokenService authToken
+            )
         {
-            this.userManager = userManager;
-            this.roleManager = roleManager;
-            this.configuration = configuration;
+            this._userManager = userManager;
+            this._roleManager = roleManager;
+            this._unitOfWork = unitOfWork;
+            this._authToken = authToken;
+            this._jwtOptions = jwtOptions.Value;
         }
 
-        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> RegisterAsync(RegisterDTO registerDTO)
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> RegisterAsync(BaseRegisterDTO registerDTO)
         {
-            if (!await roleManager.RoleExistsAsync(registerDTO.Role))
+            if (!await _roleManager.RoleExistsAsync(registerDTO.Role))
                 return (false, new[] { "InValid Role Selected" });
 
             var user = new ApplicationUser
@@ -39,62 +57,221 @@ namespace BreastCancer.Service.Implementation
                 Email = registerDTO.Email
             };
 
-            var result = await userManager.CreateAsync(user, registerDTO.Password);
+            var result = await _userManager.CreateAsync(user, registerDTO.Password);
 
             if (!result.Succeeded)
                 return (false, result.Errors.Select(e => e.Description));
 
 
             // Assign Role
-            await userManager.AddToRoleAsync(user, registerDTO.Role);
+            await _userManager.AddToRoleAsync(user, registerDTO.Role);
 
             return (true, null);
         }
 
-        public async Task<(bool IsSuccess, string Token, string ErrorsMessage)> LoginAsync(LoginDTO loginDTO)
+        
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest)
         {
-            var user = await userManager.FindByEmailAsync(loginDTO.Email);
 
-            if (user == null)
-                return (false, null, "InValid Email or Password");
+            var userResult = await CreateUserAsync(DoctorFromRequest);
 
-            bool IsValid = await userManager.CheckPasswordAsync(user, loginDTO.Password);
-
-            if (!IsValid)
-                return (false, null, "InValid Email or Password");
-
-            // Generate Token
-            // Claims
-            List<Claim> UserClaims = new List<Claim>();
-            // JTI
-            UserClaims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
-            // addition Info
-            UserClaims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-            UserClaims.Add(new Claim(ClaimTypes.Name, user.FullName));
-            // Add Roles
-            IEnumerable<string> UserRoles = await userManager.GetRolesAsync(user);
-            foreach (var Role in UserRoles)
+            if (!userResult.IsSuccess)
             {
-                UserClaims.Add(new Claim(ClaimTypes.Role, Role));
+                return (false, userResult.Errors);
             }
+            
 
-            // Signing Credentials
-            var SignKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Key"]));
-            SigningCredentials signingCredentials = new SigningCredentials(SignKey, SecurityAlgorithms.HmacSha256);
+            var doctor = new Doctor
+            {
+                UserId = userResult.Id,
+                LicenseNumber = DoctorFromRequest.LicenseNumber,
+                Specialization = DoctorFromRequest.Specialization,
+                YearsOfExperience = DoctorFromRequest.YearsOfExperience
+            };
+            _unitOfWork.DoctorsRepository.Add(doctor);
+            await _unitOfWork.SaveAsync();
 
-            JwtSecurityToken myToken = new JwtSecurityToken(
-                    issuer: "https://localhost:44305/",
-                    expires: DateTime.Now.AddHours(2),
-                    claims: UserClaims,
-                    signingCredentials: signingCredentials
-                );
+            return (true, null);
+        }
 
-            var tokenHandler = new JwtSecurityTokenHandler().WriteToken(myToken);
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> CaregiverRegister(CaregiverRegisterDTO CaregiverFromRequest)
+        {
+            var userResult = await CreateUserAsync(CaregiverFromRequest);
 
-            return (true, tokenHandler, null);
+            if (!userResult.IsSuccess)
+            {
+                return (false, userResult.Errors);
+            }
+            
 
+            var caregiver = new Caregiver
+            {
+                UserId = userResult.Id,
+                RelationshipType = CaregiverFromRequest.RelationshipType,
+                PatientId = CaregiverFromRequest.PatientId
+                
+            };
+            _unitOfWork.CaregiversRepository.Add(caregiver);
+            await _unitOfWork.SaveAsync();
+
+            return (true, null);
 
         }
 
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> PatientRegister(PatientRegisterDTO PatientFromRequest)
+        {
+            var userResult = await CreateUserAsync(PatientFromRequest);
+
+            if (!userResult.IsSuccess)
+            {
+                return (false, userResult.Errors);
+            }
+
+            var patient = new Patient
+            {
+                UserId = userResult.Id,
+                MedicalHistory = PatientFromRequest.MedicalHistory,
+                DoctorId= null // will be assigned later
+
+            };
+            _unitOfWork.PatientsRepository.Add(patient);
+            await _unitOfWork.SaveAsync();
+
+            return (true, null);
+
+        }
+        public async Task<TokenResponseDTO> LoginAsync(LoginDTO loginDTO)
+        {
+            var user = await _userManager.FindByEmailAsync(loginDTO.Email);
+
+            if (user == null)
+                return new TokenResponseDTO
+                {
+                    IsSuccess =false,
+                    Errors = new[] {"Invaild Email or Password"}
+                };
+
+            bool IsValid = await _userManager.CheckPasswordAsync(user, loginDTO.Password);
+
+            if (!IsValid) 
+                return new TokenResponseDTO
+                {
+                    IsSuccess = false,
+                    Errors = new[] { "Invaild Email or Password" }
+                };
+
+
+            var AccessToken = await _authToken.GenerateToken(user);
+
+            var existingToken = await _unitOfWork.RefreshTokenRepository.CheckForExistingValidRefreshToken(user);
+
+            string refreshToken;
+            if (existingToken != null)
+            {
+                // Reuse the existing valid refresh token
+                refreshToken = existingToken.Token;
+            }
+            else
+            {
+                // Create a new refresh token
+                var newRefreshToken = new RefreshToken
+                {
+                    Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                    UserId = user.Id,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7).ToLocalTime(),
+                    IsRevoked = false
+                };
+
+                _unitOfWork.RefreshTokenRepository.Add(newRefreshToken);
+                await _unitOfWork.SaveAsync();
+
+                refreshToken = newRefreshToken.Token;
+            }
+            
+
+            return new TokenResponseDTO
+            {
+               IsSuccess = true,
+               RefreshToken= refreshToken,
+               AccessToken = AccessToken.Token,
+               ExpiresTime = AccessToken.expiresAtUtc
+            };
+
+        }
+
+        private async Task<(string Id,bool IsSuccess, IEnumerable<string> Errors)>  CreateUserAsync (BaseRegisterDTO model)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+
+            if (existingUser != null)
+                return (null,false, new[] { "Email Already Exists" });
+
+
+            // ToDo: AutoMapper
+            var user = new ApplicationUser
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                UserName = model.Email,
+                Email = model.Email,
+                Address = model.Address,
+                PhoneNumber = model.PhoneNumber,
+                Gender = model.Gender
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+                return (null,false, result.Errors.Select(e => e.Description));
+
+            // Assign Role
+            var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+
+            if (!roleResult.Succeeded)
+                return (null,false, roleResult.Errors.Select(e => e.Description));
+
+            return (user.Id, true, null);
+        }
+
+        public async Task<bool> LogoutAsync(LogoutDTO dto)
+        {
+            var token = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(dto.RefreshToken);
+
+            if (token == null)
+                return false;
+
+            if (token.IsRevoked)
+                return true; // already logged out
+
+            token.IsRevoked = true;
+            _unitOfWork.RefreshTokenRepository.Update(token);
+            await _unitOfWork.SaveAsync();
+
+            return true;
+        }
+        public async Task<TokenResponseDTO> RefreshTokenAsync(RefreshTokenDTO Token)
+        {
+            var tokenEntity = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(Token.RefreshToken);
+
+            if (tokenEntity == null || tokenEntity.ExpiresAt < DateTime.UtcNow || tokenEntity.IsRevoked)
+            {
+                return new TokenResponseDTO
+                {
+                    IsSuccess = false,
+                    Errors = new[] { "Invalid or expired refresh token" }
+                };
+            }
+            var user = tokenEntity.User;
+
+            var accessToken = await _authToken.GenerateToken(user);
+
+            return new TokenResponseDTO
+            {
+                IsSuccess = true,
+                AccessToken = accessToken.Token,
+                ExpiresTime = accessToken.expiresAtUtc.ToLocalTime(),
+                RefreshToken = Token.RefreshToken
+            };
+        }
     }
 }

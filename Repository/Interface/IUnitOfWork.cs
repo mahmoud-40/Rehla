@@ -6,6 +6,9 @@
         IPatientRepository PatientsRepository { get; }
         ICaregiverRepository CaregiversRepository { get; }
 
+        IRefreshTokenRepository RefreshTokenRepository { get; }
+        
+
         Task<int> SaveAsync();
 
         void Save();

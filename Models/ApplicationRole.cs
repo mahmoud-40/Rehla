@@ -2,7 +2,7 @@
 
 namespace BreastCancer.Models
 {
-    public class ApplicationRole : IdentityRole<string>
+    public class ApplicationRole :IdentityRole<string>
     {
         //public ApplicationRole()
         //{
