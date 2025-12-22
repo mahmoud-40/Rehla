@@ -40,6 +40,11 @@ namespace BreastCancer.Models
         public string? CreatedBy { get; set; }
         public string? UpdatedBy { get; set; }
 
+
+        public virtual Caregiver? Caregiver { get; set; } = null;
+        public virtual Doctor? Doctor { get; set; } = null;
+        public virtual Patient? Patient { get; set; } = null;
+        public virtual ICollection<RefreshToken>? RefreshTokens { get; set; } = new List<RefreshToken>();
         private int CalculateAge()
         {
             if (!DateOfBirth.HasValue) return 0;
