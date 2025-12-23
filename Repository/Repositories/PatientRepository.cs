@@ -14,11 +14,14 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<Patient?> GetByIdAsync(string id)
         {
-            return await _dbSet.FindAsync(id);
+            // Rely on EF Core lazy loading proxies to load navigation properties (User, Doctor, Caregivers)
+            return await _dbSet.FirstOrDefaultAsync(p => p.UserId == id);
         }
 
         public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
         {
+            // Rely on EF Core lazy loading proxies for navigation properties (User, Doctor, Caregivers)
+            // Pagination is applied only to the Patient set
             return await _dbSet
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

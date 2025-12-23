@@ -98,10 +98,11 @@ namespace BreastCancer.Service.Implementation
                     }
                 }
 
-                // Generate temporary password (always generate since Password is not in DTO)
+                // Generate temporary password
                 var temporaryPassword = GenerateTemporaryPassword();
 
-                var patient = new Patient
+                // Step 1: Create ApplicationUser first
+                var user = new ApplicationUser
                 {
                     FirstName = patientDto.FirstName,
                     LastName = patientDto.LastName,
@@ -112,28 +113,36 @@ namespace BreastCancer.Service.Implementation
                     ImageUrl = patientDto.ImageUrl,
                     DateOfBirth = patientDto.DateOfBirth,
                     Gender = patientDto.Gender,
-                    MedicalHistory = patientDto.MedicalHistory,
-                    DoctorId = patientDto.DoctorId,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await _userManager.CreateAsync(patient, temporaryPassword);
+                var result = await _userManager.CreateAsync(user, temporaryPassword);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    throw new InvalidOperationException($"Failed to create patient: {errors}");
+                    throw new InvalidOperationException($"Failed to create user: {errors}");
                 }
 
-                // Assign Patient role
-                await _userManager.AddToRoleAsync(patient, "Patient");
+                // Step 2: Assign Patient role
+                await _userManager.AddToRoleAsync(user, "Patient");
+
+                // Step 3: Create Patient entity with UserId
+                var patient = new Patient
+                {
+                    UserId = user.Id,
+                    MedicalHistory = patientDto.MedicalHistory,
+                    DoctorId = patientDto.DoctorId
+                };
+
+                _unitOfWork.PatientsRepository.Add(patient);
+                await _unitOfWork.PatientsRepository.SaveChangesAsync();
 
                 // Load related data
-                await _unitOfWork.PatientsRepository.SaveChangesAsync();
-                var createdPatient = await _unitOfWork.PatientsRepository.GetByIdAsync(patient.Id);
+                var createdPatient = await _unitOfWork.PatientsRepository.GetByIdAsync(user.Id);
 
-                _logger.LogInformation("Patient created successfully with ID: {PatientId}", patient.Id);
+                _logger.LogInformation("Patient created successfully with ID: {PatientId}", user.Id);
                 return _mapper.Map<PatientResponseDTO>(createdPatient!);
             }
             catch (Exception ex)
@@ -153,17 +162,19 @@ namespace BreastCancer.Service.Implementation
                 }
 
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
-                if (patient == null)
+                if (patient == null || patient.User == null)
                 {
                     return null;
                 }
 
-                // Update properties if provided
+                var user = patient.User;
+
+                // Update User properties if provided
                 if (!string.IsNullOrEmpty(patientDto.FirstName))
-                    patient.FirstName = patientDto.FirstName;
+                    user.FirstName = patientDto.FirstName;
 
                 if (!string.IsNullOrEmpty(patientDto.LastName))
-                    patient.LastName = patientDto.LastName;
+                    user.LastName = patientDto.LastName;
 
                 if (!string.IsNullOrEmpty(patientDto.Email))
                 {
@@ -173,25 +184,26 @@ namespace BreastCancer.Service.Implementation
                     {
                         throw new InvalidOperationException($"Email '{patientDto.Email}' is already taken.");
                     }
-                    patient.Email = patientDto.Email;
-                    patient.UserName = patientDto.Email;
+                    user.Email = patientDto.Email;
+                    user.UserName = patientDto.Email;
                 }
 
                 if (!string.IsNullOrEmpty(patientDto.PhoneNumber))
-                    patient.PhoneNumber = patientDto.PhoneNumber;
+                    user.PhoneNumber = patientDto.PhoneNumber;
 
                 if (patientDto.Address != null)
-                    patient.Address = patientDto.Address;
+                    user.Address = patientDto.Address;
 
                 if (patientDto.ImageUrl != null)
-                    patient.ImageUrl = patientDto.ImageUrl;
+                    user.ImageUrl = patientDto.ImageUrl;
 
                 if (patientDto.DateOfBirth.HasValue)
-                    patient.DateOfBirth = patientDto.DateOfBirth.Value;
+                    user.DateOfBirth = patientDto.DateOfBirth.Value;
 
                 if (patientDto.Gender.HasValue)
-                    patient.Gender = patientDto.Gender.Value;
+                    user.Gender = patientDto.Gender.Value;
 
+                // Update Patient-specific properties
                 if (patientDto.MedicalHistory != null)
                     patient.MedicalHistory = patientDto.MedicalHistory;
 
@@ -207,10 +219,12 @@ namespace BreastCancer.Service.Implementation
                 }
 
                 if (patientDto.IsActive.HasValue)
-                    patient.IsActive = patientDto.IsActive.Value;
+                    user.IsActive = patientDto.IsActive.Value;
 
-                patient.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = DateTime.UtcNow;
 
+                // Update both User and Patient
+                await _userManager.UpdateAsync(user);
                 _unitOfWork.PatientsRepository.Update(patient);
                 await _unitOfWork.PatientsRepository.SaveChangesAsync();
 
@@ -235,16 +249,17 @@ namespace BreastCancer.Service.Implementation
                 }
 
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
-                if (patient == null)
+                if (patient == null || patient.User == null)
                 {
                     throw new InvalidOperationException($"Patient with ID '{id}' not found.");
                 }
 
-                // Soft delete by setting IsActive to false
-                patient.IsActive = false;
-                patient.UpdatedAt = DateTime.UtcNow;
+                // Soft delete by setting User.IsActive to false
+                var user = patient.User;
+                user.IsActive = false;
+                user.UpdatedAt = DateTime.UtcNow;
 
-                _unitOfWork.PatientsRepository.Update(patient);
+                await _userManager.UpdateAsync(user);
                 await _unitOfWork.PatientsRepository.SaveChangesAsync();
 
                 _logger.LogInformation("Patient soft deleted successfully with ID: {PatientId}", id);
@@ -266,13 +281,14 @@ namespace BreastCancer.Service.Implementation
                 }
 
                 var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(id);
-                if (patient == null)
+                if (patient == null || patient.User == null)
                 {
                     throw new InvalidOperationException($"Patient with ID '{id}' not found.");
                 }
 
-                // Hard delete: Remove from Identity and database
-                var result = await _userManager.DeleteAsync(patient);
+                // Hard delete: Delete ApplicationUser (Patient will be deleted via cascade or foreign key constraint)
+                var user = patient.User;
+                var result = await _userManager.DeleteAsync(user);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
@@ -326,4 +342,3 @@ namespace BreastCancer.Service.Implementation
 
     }
 }
-

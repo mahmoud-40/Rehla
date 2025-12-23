@@ -11,7 +11,7 @@ namespace BreastCancer.Models
         public bool IsRevoked { get; set; }
 
         public bool IsActice => !IsRevoked && ExpiresAt < DateTime.UtcNow;
-        
+
         public string UserId { get; set; }
         public virtual ApplicationUser User { get; set; }
 

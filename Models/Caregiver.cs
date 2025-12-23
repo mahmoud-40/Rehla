@@ -5,10 +5,6 @@ namespace BreastCancer.Models
 {
     public class Caregiver
     {
-        [Key]
-        [ForeignKey(nameof(User))]
-        public string UserId { get; set; }
-
         [MaxLength(50)]
         public string? RelationshipType { get; set; }
         [Required]

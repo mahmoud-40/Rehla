@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Context
 {
-    public class BreastCancerDB : IdentityDbContext<ApplicationUser,ApplicationRole,string>
+    public class BreastCancerDB : IdentityDbContext<ApplicationUser, ApplicationRole, string>
     {
         public BreastCancerDB(DbContextOptions options)
             : base(options)
@@ -13,8 +13,8 @@ namespace BreastCancer.Context
         }
 
         public virtual DbSet<Patient> Patients { get; set; }
-        public virtual DbSet<Doctor> Doctors{ get; set; }
-        public virtual DbSet<Caregiver> Caregivers{ get; set; }
+        public virtual DbSet<Doctor> Doctors { get; set; }
+        public virtual DbSet<Caregiver> Caregivers { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -43,7 +43,7 @@ namespace BreastCancer.Context
                 .HasOne(p => p.Doctor)
                 .WithMany(d => d.Patients)
                 .HasForeignKey(p => p.DoctorId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Caregiver>()
                 .HasOne(c => c.Patient)
