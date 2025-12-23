@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BreastCancer.Controllers
 {
+    /// <summary>
+    /// Controller for managing patient operations
+    /// </summary>
     [Route("api/patient")]
     [ApiController]
     [Authorize]
@@ -22,10 +25,13 @@ namespace BreastCancer.Controllers
         /// <summary>
         /// Get all patients with pagination
         /// </summary>
-        /// <param name="pageNumber">Page number (default: 1)</param>
-        /// <param name="pageSize">Page size (default: 10)</param>
-        /// <returns>List of patients</returns>
-        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
+        /// <param name="pageNumber">Page number (default: 1, minimum: 1)</param>
+        /// <param name="pageSize">Page size (default: 10, range: 1-100)</param>
+        /// <returns>List of patients with pagination</returns>
+        /// <remarks>
+        /// Requires Admin role.
+        /// Returns a paginated list of all patients in the system.
+        /// </remarks>
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllPatients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -48,11 +54,14 @@ namespace BreastCancer.Controllers
         }
 
         /// <summary>
-        /// Get a patient by ID
+        /// Get a patient by UserId
         /// </summary>
-        /// <param name="id">Patient ID</param>
+        /// <param name="id">Patient UserId (primary key)</param>
         /// <returns>Patient details</returns>
-        /// <remarks>ContentAccess policy allows access to users with roles: Doctor, Admin, Patient, or Caregiver</remarks>
+        /// <remarks>
+        /// Requires one of the following roles: Doctor, Admin, Patient, or Caregiver.
+        /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
+        /// </remarks>
         [HttpGet("{id}")]
         [Authorize(Roles = "Doctor, Admin, Patient, Caregiver")]
         public async Task<IActionResult> GetPatientById(string id)
@@ -62,19 +71,19 @@ namespace BreastCancer.Controllers
                 var patient = await _patientService.GetPatientByIdAsync(id);
                 if (patient == null)
                 {
-                    return NotFound(new { message = $"Patient with ID '{id}' not found." });
+                    return NotFound(new { message = $"Patient with UserId '{id}' not found." });
                 }
 
                 return Ok(patient);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid argument while retrieving patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid argument while retrieving patient with UserId: {UserId}", id);
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving patient with ID: {PatientId}", id);
+                _logger.LogError(ex, "Error retrieving patient with UserId: {UserId}", id);
                 return BadRequest(new { message = "An error occurred while retrieving the patient." });
             }
         }
@@ -83,8 +92,13 @@ namespace BreastCancer.Controllers
         /// Create a new patient
         /// </summary>
         /// <param name="patientDto">Patient creation data</param>
-        /// <returns>Created patient</returns>
-        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
+        /// <returns>Created patient with generated UserId</returns>
+        /// <remarks>
+        /// Requires Admin role.
+        /// Creates both an ApplicationUser and a Patient entity.
+        /// A temporary password will be automatically generated for the patient.
+        /// The returned ID is the UserId which serves as the Patient's primary key.
+        /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreatePatient([FromBody] PatientCreateDTO patientDto)
@@ -122,10 +136,14 @@ namespace BreastCancer.Controllers
         /// <summary>
         /// Update an existing patient
         /// </summary>
-        /// <param name="id">Patient ID</param>
+        /// <param name="id">Patient UserId (primary key)</param>
         /// <param name="patientDto">Patient update data</param>
         /// <returns>Updated patient</returns>
-        /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
+        /// <remarks>
+        /// Requires Admin or Patient role.
+        /// Patients can only update their own information.
+        /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
+        /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin, Patient")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdateDTO patientDto)
@@ -140,34 +158,39 @@ namespace BreastCancer.Controllers
                 var updatedPatient = await _patientService.UpdatePatientAsync(id, patientDto);
                 if (updatedPatient == null)
                 {
-                    return NotFound(new { message = $"Patient with ID '{id}' not found." });
+                    return NotFound(new { message = $"Patient with UserId '{id}' not found." });
                 }
 
                 return Ok(updatedPatient);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid argument while updating patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid argument while updating patient with UserId: {UserId}", id);
                 return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "Invalid operation while updating patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid operation while updating patient with UserId: {UserId}", id);
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating patient with ID: {PatientId}", id);
+                _logger.LogError(ex, "Error updating patient with UserId: {UserId}", id);
                 return BadRequest(new { message = "An error occurred while updating the patient." });
             }
         }
 
         /// <summary>
-        /// Delete a patient (soft delete)
+        /// Delete a patient (soft delete - sets IsActive to false)
         /// </summary>
-        /// <param name="id">Patient ID</param>
+        /// <param name="id">Patient UserId (primary key)</param>
         /// <returns>No content on success</returns>
-        /// <remarks>AdminOrPatient policy allows access to users with roles: Admin or Patient</remarks>
+        /// <remarks>
+        /// Requires Admin or Patient role.
+        /// Patients can only delete their own account.
+        /// This is a soft delete operation that sets the IsActive flag to false.
+        /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
+        /// </remarks>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin, Patient")]
         public async Task<IActionResult> DeletePatient(string id)
@@ -179,17 +202,17 @@ namespace BreastCancer.Controllers
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid argument while deleting patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid argument while deleting patient with UserId: {UserId}", id);
                 return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "Invalid operation while deleting patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid operation while deleting patient with UserId: {UserId}", id);
                 return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting patient with ID: {PatientId}", id);
+                _logger.LogError(ex, "Error deleting patient with UserId: {UserId}", id);
                 return BadRequest(new { message = "An error occurred while deleting the patient." });
             }
         }
@@ -197,9 +220,14 @@ namespace BreastCancer.Controllers
         /// <summary>
         /// Hard delete a patient (permanently remove from database)
         /// </summary>
-        /// <param name="id">Patient ID</param>
+        /// <param name="id">Patient UserId (primary key)</param>
         /// <returns>No content on success</returns>
-        /// <remarks>SystemAdmin policy allows access only to users with role: Admin</remarks>
+        /// <remarks>
+        /// Requires Admin role.
+        /// This permanently deletes both the Patient entity and the associated ApplicationUser from the database.
+        /// This operation cannot be undone.
+        /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
+        /// </remarks>
         [HttpDelete("{id}/HardDelete")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> HardDeletePatient(string id)
@@ -211,17 +239,17 @@ namespace BreastCancer.Controllers
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid argument while hard deleting patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid argument while hard deleting patient with UserId: {UserId}", id);
                 return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "Invalid operation while hard deleting patient with ID: {PatientId}", id);
+                _logger.LogWarning(ex, "Invalid operation while hard deleting patient with UserId: {UserId}", id);
                 return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error hard deleting patient with ID: {PatientId}", id);
+                _logger.LogError(ex, "Error hard deleting patient with UserId: {UserId}", id);
                 return BadRequest(new { message = "An error occurred while hard deleting the patient." });
             }
         }

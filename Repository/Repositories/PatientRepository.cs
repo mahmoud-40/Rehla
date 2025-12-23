@@ -14,12 +14,19 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<Patient?> GetByIdAsync(string id)
         {
-            return await _dbSet.FindAsync(id);
+            return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(p => p.UserId == id);
         }
 
         public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
         {
             return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.User)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
