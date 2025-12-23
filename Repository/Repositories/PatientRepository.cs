@@ -20,11 +20,9 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
         {
-            // Rely on lazy loading; pagination is applied only to the Patient set
+            // Rely on EF Core lazy loading proxies for navigation properties (User, Doctor, Caregivers)
+            // Pagination is applied only to the Patient set
             return await _dbSet
-                .Include(p => p.User)
-                .Include(p => p.Doctor)
-                    .ThenInclude(d => d.User)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
