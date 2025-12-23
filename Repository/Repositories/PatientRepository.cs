@@ -22,6 +22,9 @@ namespace BreastCancer.Repository.Repositories
         {
             // Rely on lazy loading; pagination is applied only to the Patient set
             return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.User)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
