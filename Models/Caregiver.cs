@@ -7,7 +7,6 @@ namespace BreastCancer.Models
     {
         [Key]
         public string UserId { get; set; }
-
         [MaxLength(50)]
         public string? RelationshipType { get; set; }
         [Required]

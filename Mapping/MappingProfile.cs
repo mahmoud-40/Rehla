@@ -1,4 +1,5 @@
 using AutoMapper;
+using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
 
@@ -23,6 +24,30 @@ namespace BreastCancer.Mapping
                 .IncludeMembers(p => p.User)
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => src.Doctor != null && src.Doctor.User != null ? src.Doctor.User.FullName : null));
+
+
+            CreateMap<BaseRegisterDTO, ApplicationUser>()
+                .ForMember(dest => dest.UserName , opt => opt.MapFrom(src => src.Username));
+
+            CreateMap<DoctorRegisterDTO, ApplicationUser>()
+                .IncludeBase<BaseRegisterDTO, ApplicationUser>();
+
+            CreateMap<PatientRegisterDTO, ApplicationUser>()
+                .IncludeBase<BaseRegisterDTO, ApplicationUser>();
+
+            CreateMap<CaregiverRegisterDTO, ApplicationUser>()
+                .IncludeBase<BaseRegisterDTO, ApplicationUser>();
+
+            CreateMap<DoctorRegisterDTO, Doctor>();
+            CreateMap<PatientRegisterDTO, Patient>();
+            CreateMap<CaregiverRegisterDTO, Caregiver>();
+
+            CreateMap<ApplicationUser, BaseRegisterDTO>();
+            CreateMap<Patient, PatientRegisterDTO>();
+            CreateMap<Caregiver, CaregiverRegisterDTO>();
+            CreateMap<Doctor, DoctorRegisterDTO>();
+
+
         }
     }
 }

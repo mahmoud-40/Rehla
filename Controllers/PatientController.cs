@@ -10,7 +10,7 @@ namespace BreastCancer.Controllers
     /// </summary>
     [Route("api/patient")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles ="Patient")]
     public class PatientController : ControllerBase
     {
         private readonly IPatientService _patientService;
