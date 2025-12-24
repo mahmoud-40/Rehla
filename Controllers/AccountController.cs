@@ -20,24 +20,6 @@ namespace BreastCancer.Controllers
         {
             this.accountService = accountService;
         }
-        [HttpPost("Register")]
-        public async Task<IActionResult> Register(BaseRegisterDTO UserFromRequest)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await accountService.RegisterAsync(UserFromRequest);
-
-            if (result.IsSuccess)
-                return Ok("Created");
-
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error);
-            }
-
-            return BadRequest(ModelState);
-        }
 
         [HttpPost("Register/Doctor")]
         public async Task<IActionResult> RegisterDoctor(DoctorRegisterDTO doctor)
@@ -47,11 +29,12 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.DoctorRegister(doctor);
             if (result.IsSuccess)
-                return Ok(new { Message = "Patient registered successfully" });
+                return Ok(new { Message = "Doctor registered successfully" });
 
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError("", error);
+                break;
             }
 
             return BadRequest(ModelState);
@@ -69,6 +52,7 @@ namespace BreastCancer.Controllers
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError("", error);
+                break;
             }
 
             return BadRequest(ModelState);
@@ -81,11 +65,12 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.CaregiverRegister(caregiver);
             if (result.IsSuccess)
-                return Ok(new { Message = "Patient registered successfully" });
+                return Ok(new { Message = "Caregiver registered successfully" });
 
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError("", error);
+                break;
             }
 
             return BadRequest(ModelState);
@@ -99,7 +84,7 @@ namespace BreastCancer.Controllers
             var result = await accountService.LoginAsync(userFromRequest);
 
             if (!result.IsSuccess)
-                return BadRequest(new { error = result.Errors });
+                return BadRequest(new { error = result.Errors.First() });
 
             return Ok(new TokenResponseDTO
             { 
@@ -119,7 +104,7 @@ namespace BreastCancer.Controllers
             var success = await accountService.LogoutAsync(logoutDTO);
 
             if (!success)
-                return BadRequest(new { message = "Invalid refresh token" });
+                return BadRequest(new { message = "Invalid refresh token"});
 
             return Ok(new { message = "Logged out successfully" });
         }
@@ -132,7 +117,7 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.RefreshTokenAsync(refreshToken);
 
-            if (!result.IsSuccess) return Unauthorized(new { error = result.Errors });
+            if (!result.IsSuccess) return Unauthorized(new { error = result.Errors.First() });
 
             return Ok(new TokenResponseDTO
             {

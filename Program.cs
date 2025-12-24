@@ -10,8 +10,10 @@ using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,6 +25,7 @@ namespace BreastCancer
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
 
             // Add services to the container.
 
@@ -73,6 +76,11 @@ namespace BreastCancer
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthTokenService,AuthTokenService>();
+            builder.Services.AddScoped<IPatientService, PatientService>();
+            builder.Services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<MappingProfile>();
+            });
 
 
             #region JWT Configuration

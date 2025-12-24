@@ -7,7 +7,7 @@ namespace BreastCancer.DTO.request
         [MaxLength(2000)]
         public string? MedicalHistory { get; set; }
 
-        public string Role => "Patient";
+        public override string Role => "Patient";
 
     }
 }

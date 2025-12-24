@@ -14,7 +14,7 @@ namespace BreastCancer.DTO.request
         [Range(0, 60)]
         public int? YearsOfExperience { get; set; }
         
-        public string Role => "Doctor";
+        public override string Role => "Doctor";
 
         [JsonIgnore]
         public bool IsVerified { get; set; } = false;

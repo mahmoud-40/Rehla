@@ -4,7 +4,6 @@ using BreastCancer.DTO.response;
 namespace BreastCancer.Service.Interface { 
     public interface IAccountService
     {
-        Task<(bool IsSuccess, IEnumerable<string> Errors)> RegisterAsync(BaseRegisterDTO registerDTO);
         Task<TokenResponseDTO> LoginAsync(LoginDTO loginDTO);
         Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest);
         Task<(bool IsSuccess, IEnumerable<string> Errors)> CaregiverRegister(CaregiverRegisterDTO CaregiverFromRequest);

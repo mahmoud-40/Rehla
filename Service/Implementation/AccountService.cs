@@ -1,4 +1,5 @@
-﻿using BreastCancer.Context;
+﻿using AutoMapper;
+using BreastCancer.Context;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -25,50 +26,27 @@ namespace BreastCancer.Service.Implementation
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly JwtOptions _jwtOptions;
         private readonly IUnitOfWork _unitOfWork;
-
+        private readonly IOptions<JwtOptions> jwtOptions;
         private readonly IAuthTokenService _authToken;
+        private readonly IMapper _mapper;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
             IUnitOfWork unitOfWork,
             IOptions<JwtOptions> jwtOptions,
-            IAuthTokenService authToken
+            IAuthTokenService authToken,
+            IMapper mapper
             )
         {
             this._userManager = userManager;
             this._roleManager = roleManager;
             this._unitOfWork = unitOfWork;
+            this.jwtOptions = jwtOptions;
             this._authToken = authToken;
+            this._mapper = mapper;
             this._jwtOptions = jwtOptions.Value;
         }
-
-        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> RegisterAsync(BaseRegisterDTO registerDTO)
-        {
-            if (!await _roleManager.RoleExistsAsync(registerDTO.Role))
-                return (false, new[] { "InValid Role Selected" });
-
-            var user = new ApplicationUser
-            {
-                FirstName = registerDTO.FirstName,
-                LastName = registerDTO.LastName,
-                UserName = registerDTO.Username,
-                PhoneNumber = registerDTO.PhoneNumber,
-                Email = registerDTO.Email
-            };
-
-            var result = await _userManager.CreateAsync(user, registerDTO.Password);
-
-            if (!result.Succeeded)
-                return (false, result.Errors.Select(e => e.Description));
-
-
-            // Assign Role
-            await _userManager.AddToRoleAsync(user, registerDTO.Role);
-
-            return (true, null);
-        }
-
         
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest)
         {
@@ -79,7 +57,7 @@ namespace BreastCancer.Service.Implementation
             {
                 return (false, userResult.Errors);
             }
-            
+
 
             var doctor = new Doctor
             {
@@ -88,6 +66,7 @@ namespace BreastCancer.Service.Implementation
                 Specialization = DoctorFromRequest.Specialization,
                 YearsOfExperience = DoctorFromRequest.YearsOfExperience
             };
+
             _unitOfWork.DoctorsRepository.Add(doctor);
             await _unitOfWork.SaveAsync();
 
@@ -102,15 +81,16 @@ namespace BreastCancer.Service.Implementation
             {
                 return (false, userResult.Errors);
             }
-            
+
 
             var caregiver = new Caregiver
             {
                 UserId = userResult.Id,
                 RelationshipType = CaregiverFromRequest.RelationshipType,
                 PatientId = CaregiverFromRequest.PatientId
-                
+
             };
+
             _unitOfWork.CaregiversRepository.Add(caregiver);
             await _unitOfWork.SaveAsync();
 
@@ -131,9 +111,10 @@ namespace BreastCancer.Service.Implementation
             {
                 UserId = userResult.Id,
                 MedicalHistory = PatientFromRequest.MedicalHistory,
-                DoctorId= null // will be assigned later
+                DoctorId = null // will be assigned later
 
             };
+
             _unitOfWork.PatientsRepository.Add(patient);
             await _unitOfWork.SaveAsync();
 
@@ -216,7 +197,8 @@ namespace BreastCancer.Service.Implementation
                 Email = model.Email,
                 Address = model.Address,
                 PhoneNumber = model.PhoneNumber,
-                Gender = model.Gender
+                Gender = model.Gender,
+                DateOfBirth = model.DateOfBirth
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);

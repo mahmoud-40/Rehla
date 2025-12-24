@@ -21,10 +21,14 @@ namespace BreastCancer.DTO.request
         public string Email { get; set; }
         public string Address { get; set; }
 
+        [DataType(DataType.Date)]
+        public DateTime DateOfBirth { get; set; }
+
         [Required]
         public Gender Gender { get; set; }
 
-        public string Role { get; set; }
+        public virtual string Role { get; set; }
+
 
         [DataType(DataType.Password)]
         public string Password { get; set; }
