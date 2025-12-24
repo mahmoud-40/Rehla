@@ -18,8 +18,9 @@ namespace BreastCancer.Repository.Repositories
         }
         public async Task<RefreshToken?> CheckForExistingValidRefreshToken(ApplicationUser user)
         {
+            DateTime CurrentTime = DateTime.UtcNow.ToLocalTime();
             return await _dbSet
-                .Where(t => t.UserId == user.Id && !t.IsRevoked && t.ExpiresAt > DateTime.UtcNow)
+                .Where(t => t.UserId == user.Id && !t.IsRevoked && t.ExpiresAt > CurrentTime)
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync();
         }
