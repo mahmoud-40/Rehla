@@ -48,6 +48,28 @@ namespace BreastCancer.Mapping
             CreateMap<Doctor, DoctorRegisterDTO>();
 
 
+            #region Caregiver Mapping
+
+            // Map CaregiverCreateDTO to Caregiver
+            CreateMap<CaregiverCreateDTO, Caregiver>()
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
+
+            // Map Caregiver to CaregiverResponse
+            CreateMap<Caregiver, CaregiverResponse>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.UserId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.User.FullName))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email));
+
+            CreateMap<CaregiverUpdateDTO, ApplicationUser>()
+            .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
+            .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName))
+            .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address))
+            .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
+            .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            #endregion
         }
     }
 }

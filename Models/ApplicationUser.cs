@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BreastCancer.Models
 {
@@ -24,7 +25,8 @@ namespace BreastCancer.Models
         public string? ImageUrl { get; set; }
 
         [DataType(DataType.Date)]
-        public DateTime? DateOfBirth { get; set; }
+        [AllowNull]
+        public DateTime? DateOfBirth { get; set; } = null;
 
         [NotMapped]
         public int? Age => DateOfBirth.HasValue ? CalculateAge() : null;
