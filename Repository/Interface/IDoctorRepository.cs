@@ -6,6 +6,7 @@ namespace BreastCancer.Repository.Interface
     {
         // Overload for string ID (Doctor uses string IDs from IdentityUser, while generic uses int)
         Task<Doctor?> GetByIdAsync(string id);
+        Task<IEnumerable<Doctor>> GetPagedAsync(int pageNumber, int pageSize);
         //Task<IEnumerable<Doctor>> GetAllWithPatientsAsync();
         //Task<IEnumerable<Doctor>> GetBySpecializationAsync(string specialization);
     }

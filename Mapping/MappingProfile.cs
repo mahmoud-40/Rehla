@@ -18,12 +18,28 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.DoctorName, opt => opt.Ignore())
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email ?? string.Empty));
 
+            // Map ApplicationUser to DoctorResponseDTO (for IncludeMembers)
+            // This allows AutoMapper to automatically map matching properties
+            CreateMap<ApplicationUser, DoctorResponseDTO>(MemberList.None)
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Specialization, opt => opt.Ignore())
+                .ForMember(dest => dest.LicenseNumber, opt => opt.Ignore())
+                .ForMember(dest => dest.YearsOfExperience, opt => opt.Ignore())
+                .ForMember(dest => dest.IsVerified, opt => opt.Ignore())
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email ?? string.Empty));
+
             // Map Patient to PatientResponseDTO
             // IncludeMembers automatically maps all matching properties from User
             CreateMap<Patient, PatientResponseDTO>()
                 .IncludeMembers(p => p.User)
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => src.Doctor != null && src.Doctor.User != null ? src.Doctor.User.FullName : null));
+
+            // Map Doctor to DoctorResponseDTO
+            // IncludeMembers automatically maps all matching properties from User
+            CreateMap<Doctor, DoctorResponseDTO>()
+                .IncludeMembers(d => d.User)
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.UserId));
 
 
             CreateMap<BaseRegisterDTO, ApplicationUser>()
