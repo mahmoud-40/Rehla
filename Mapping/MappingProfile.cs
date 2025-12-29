@@ -54,6 +54,41 @@ namespace BreastCancer.Mapping
             CreateMap<CaregiverRegisterDTO, ApplicationUser>()
                 .IncludeBase<BaseRegisterDTO, ApplicationUser>();
 
+            // Map DoctorCreateDTO to ApplicationUser
+            CreateMap<DoctorCreateDTO, ApplicationUser>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            // Map DoctorUpdateDTO to ApplicationUser (for updates - only maps non-null properties)
+            var updateUserMap = CreateMap<DoctorUpdateDTO, ApplicationUser>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom((src, dest) => !string.IsNullOrEmpty(src.Email) ? src.Email : dest.UserName))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+            
+            updateUserMap.ForAllMembers(opt => opt.Condition((src, dest, srcMember, destMember) =>
+            {
+                if (srcMember == null) return false;
+                if (srcMember is string str) return !string.IsNullOrEmpty(str);
+                return true;
+            }));
+
+            // Map DoctorCreateDTO to Doctor
+            CreateMap<DoctorCreateDTO, Doctor>()
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(src => false));
+
+            // Map DoctorUpdateDTO to Doctor (for updates - only maps non-null properties)
+            var updateDoctorMap = CreateMap<DoctorUpdateDTO, Doctor>()
+                .ForMember(dest => dest.UserId, opt => opt.Ignore());
+            
+            updateDoctorMap.ForAllMembers(opt => opt.Condition((src, dest, srcMember, destMember) =>
+            {
+                if (srcMember == null) return false;
+                if (srcMember is string str) return !string.IsNullOrEmpty(str);
+                return true;
+            }));
+
             CreateMap<DoctorRegisterDTO, Doctor>();
             CreateMap<PatientRegisterDTO, Patient>();
             CreateMap<CaregiverRegisterDTO, Caregiver>();

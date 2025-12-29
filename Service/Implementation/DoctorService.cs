@@ -90,22 +90,8 @@ namespace BreastCancer.Service.Implementation
                 // Generate temporary password
                 var temporaryPassword = GenerateTemporaryPassword();
 
-                // Step 1: Create ApplicationUser first
-                var user = new ApplicationUser
-                {
-                    FirstName = doctorDto.FirstName,
-                    LastName = doctorDto.LastName,
-                    Email = doctorDto.Email,
-                    UserName = doctorDto.Email,
-                    PhoneNumber = doctorDto.PhoneNumber,
-                    Address = doctorDto.Address,
-                    ImageUrl = doctorDto.ImageUrl,
-                    DateOfBirth = doctorDto.DateOfBirth,
-                    Gender = doctorDto.Gender,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                // Step 1: Create ApplicationUser using AutoMapper
+                var user = _mapper.Map<ApplicationUser>(doctorDto);
 
                 var result = await _userManager.CreateAsync(user, temporaryPassword);
                 if (!result.Succeeded)
@@ -117,15 +103,9 @@ namespace BreastCancer.Service.Implementation
                 // Step 2: Assign Doctor role
                 await _userManager.AddToRoleAsync(user, "Doctor");
 
-                // Step 3: Create Doctor entity with UserId
-                var doctor = new Doctor
-                {
-                    UserId = user.Id,
-                    Specialization = doctorDto.Specialization,
-                    LicenseNumber = doctorDto.LicenseNumber,
-                    YearsOfExperience = doctorDto.YearsOfExperience,
-                    IsVerified = false
-                };
+                // Step 3: Create Doctor entity using AutoMapper
+                var doctor = _mapper.Map<Doctor>(doctorDto);
+                doctor.UserId = user.Id;
 
                 _unitOfWork.DoctorsRepository.Add(doctor);
                 await _unitOfWork.DoctorsRepository.SaveChangesAsync();
@@ -160,57 +140,21 @@ namespace BreastCancer.Service.Implementation
 
                 var user = doctor.User;
 
-                // Update User properties if provided
-                if (!string.IsNullOrEmpty(doctorDto.FirstName))
-                    user.FirstName = doctorDto.FirstName;
-
-                if (!string.IsNullOrEmpty(doctorDto.LastName))
-                    user.LastName = doctorDto.LastName;
-
+                // Validate email if being updated
                 if (!string.IsNullOrEmpty(doctorDto.Email))
                 {
-                    // Check if email is already taken by another user
                     var existingUser = await _userManager.FindByEmailAsync(doctorDto.Email);
                     if (existingUser != null && existingUser.Id != id)
                     {
                         throw new InvalidOperationException($"Email '{doctorDto.Email}' is already taken.");
                     }
-                    user.Email = doctorDto.Email;
-                    user.UserName = doctorDto.Email;
                 }
 
-                if (!string.IsNullOrEmpty(doctorDto.PhoneNumber))
-                    user.PhoneNumber = doctorDto.PhoneNumber;
+                // Update User properties using AutoMapper (only maps non-null properties)
+                _mapper.Map(doctorDto, user);
 
-                if (doctorDto.Address != null)
-                    user.Address = doctorDto.Address;
-
-                if (doctorDto.ImageUrl != null)
-                    user.ImageUrl = doctorDto.ImageUrl;
-
-                if (doctorDto.DateOfBirth.HasValue)
-                    user.DateOfBirth = doctorDto.DateOfBirth.Value;
-
-                if (doctorDto.Gender.HasValue)
-                    user.Gender = doctorDto.Gender.Value;
-
-                // Update Doctor-specific properties
-                if (doctorDto.Specialization != null)
-                    doctor.Specialization = doctorDto.Specialization;
-
-                if (doctorDto.LicenseNumber != null)
-                    doctor.LicenseNumber = doctorDto.LicenseNumber;
-
-                if (doctorDto.YearsOfExperience.HasValue)
-                    doctor.YearsOfExperience = doctorDto.YearsOfExperience.Value;
-
-                if (doctorDto.IsVerified.HasValue)
-                    doctor.IsVerified = doctorDto.IsVerified.Value;
-
-                if (doctorDto.IsActive.HasValue)
-                    user.IsActive = doctorDto.IsActive.Value;
-
-                user.UpdatedAt = DateTime.UtcNow;
+                // Update Doctor-specific properties using AutoMapper (only maps non-null properties)
+                _mapper.Map(doctorDto, doctor);
 
                 // Update both User and Doctor
                 await _userManager.UpdateAsync(user);
