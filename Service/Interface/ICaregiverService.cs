@@ -6,15 +6,16 @@ namespace BreastCancer.Service.Interface
     public interface ICaregiverService
     {
         Task<IEnumerable<CaregiverResponse>> GetAllCaregivers();
-        void CreateCaregiver(CaregiverCreateDTO caregiverDto);
+        
+        Task CreateCaregiver(CaregiverCreateDTO caregiverDto);
 
         Task<CaregiverResponse> GetCaregiverById(string id);
 
         Task UpdateCaregiver(string id, CaregiverUpdateDTO updateDto);
 
-        void DeleteCaregiver(string id);
+        Task DeleteCaregiver(string id);
 
-        void HardDeleteCaregiverById(string id);
+        Task HardDeleteCaregiverById(string id);
         Task<IEnumerable<CaregiverResponse>> GetCaregiverByPatientId(string patientId);
     }
 }

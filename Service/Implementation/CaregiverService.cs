@@ -33,12 +33,12 @@ namespace BreastCancer.Service.Implementation
             return _mapper.Map<IEnumerable<CaregiverResponse>>(caregivers);
         }
 
-        public Task<CaregiverResponse> GetCaregiverById(string id)
+        public async Task<CaregiverResponse> GetCaregiverById(string id)
         {
-            var caregiver = getById(id);
+            var caregiver = await GetByIdAsync(id);
 
             var caregiverResponse = _mapper.Map<CaregiverResponse>(caregiver);
-            return Task.FromResult(caregiverResponse);
+            return caregiverResponse;
         }
 
         public Task<IEnumerable<CaregiverResponse>> GetCaregiverByPatientId(string patientId)
@@ -55,9 +55,9 @@ namespace BreastCancer.Service.Implementation
             return Task.FromResult(caregiverResponses);
         }
 
-        public void CreateCaregiver(CaregiverCreateDTO caregiverDto)
+        public async Task CreateCaregiver(CaregiverCreateDTO caregiverDto)
         {
-            var existingUser = _userManager.FindByEmailAsync(caregiverDto.Email).Result;
+            var existingUser = await _userManager.FindByEmailAsync(caregiverDto.Email);
             if (existingUser != null)
             {
                 throw new Exception("User with the same email already exists.");
@@ -71,11 +71,14 @@ namespace BreastCancer.Service.Implementation
                 LastName = caregiverDto.LastName
             };
 
-            _userManager.CreateAsync(user, "DefaultPassword123!").Wait();
+            var randomPassword = Guid.NewGuid().ToString().Substring(0, 8) + "aA1!";
+
+            await _userManager.CreateAsync(user, randomPassword);
+            await _userManager.AddToRoleAsync(user, "Caregiver");
             Caregiver caregiver = _mapper.Map<Caregiver>(caregiverDto);
             caregiver.UserId = user.Id;
-            _unitOfWork.CaregiversRepository.Add(caregiver);
-            _unitOfWork.Save();
+            await _unitOfWork.CaregiversRepository.AddAsync(caregiver);
+            await _unitOfWork.SaveAsync();
         }
 
         public async Task UpdateCaregiver(string userId, CaregiverUpdateDTO updateDto)
@@ -91,24 +94,24 @@ namespace BreastCancer.Service.Implementation
                 throw new Exception($"Update failed: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
 
-        public void DeleteCaregiver(string id)
+        public async Task DeleteCaregiver(string id)
         {
-            var caregiver = getById(id);
+            var caregiver = await GetByIdAsync(id);
             caregiver.User.IsActive = false;
             _unitOfWork.CaregiversRepository.Update(caregiver);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
         }
 
-        public void HardDeleteCaregiverById(string id)
+        public async Task HardDeleteCaregiverById(string id)
         {
-            var caregiver = getById(id);
+            var caregiver = await GetByIdAsync(id);
             _unitOfWork.CaregiversRepository.Delete(caregiver);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
         }
 
-        private Caregiver getById(string id)
+        private async Task<Caregiver> GetByIdAsync(string id)
         {
-            var caregiver =  _unitOfWork.CaregiversRepository.GetByIdAsync(id).Result;
+            var caregiver = await _unitOfWork.CaregiversRepository.GetByIdAsync(id);
             if (caregiver == null)
             {
                 throw new Exception("Caregiver not found.");

@@ -68,9 +68,9 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status201Created, "Caregiver created successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid caregiver data")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        public IActionResult CreateCaregiver([FromBody] CaregiverCreateDTO caregiverDto)
+        public async Task<IActionResult> CreateCaregiver([FromBody] CaregiverCreateDTO caregiverDto)
         {
-             _caregiverService.CreateCaregiver(caregiverDto);
+             await _caregiverService.CreateCaregiver(caregiverDto);
             return CreatedAtAction(nameof(GetAllCaregivers), null);
         }
 
@@ -91,9 +91,9 @@ namespace BreastCancer.Controllers
         [SwaggerOperation(Summary = "Delete caregiver (soft delete)")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Caregiver deleted successfully")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        public IActionResult DeleteCaregiver(string id)
+        public async Task<IActionResult> DeleteCaregiver(string id)
         {
-            _caregiverService.DeleteCaregiver(id);
+            await _caregiverService.DeleteCaregiver(id);
             return NoContent();
         }
 
@@ -102,9 +102,9 @@ namespace BreastCancer.Controllers
         [SwaggerOperation(Summary = "Hard delete caregiver")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Caregiver hard deleted successfully")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        public IActionResult HardDeleteCaregiverById(string id)
+        public async Task<IActionResult> HardDeleteCaregiverById(string id)
         {
-            _caregiverService.HardDeleteCaregiverById(id);
+            await _caregiverService.HardDeleteCaregiverById(id);
             return NoContent();
         }
     }
