@@ -8,7 +8,7 @@ namespace BreastCancer.Controllers
     /// <summary>
     /// Controller for managing patient operations
     /// </summary>
-    [Route("api/patient")]
+    [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles ="Patient")]
     public class PatientController : ControllerBase

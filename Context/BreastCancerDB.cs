@@ -70,6 +70,11 @@ namespace BreastCancer.Context
                 .IsUnique()
                 .HasFilter("[LicenseNumber] IS NOT NULL");
 
+
+            modelBuilder.Entity<ApplicationUser>()
+                .Property(u => u.DateOfBirth)
+                .IsRequired(false);
+
             modelBuilder.Entity<ApplicationRole>().HasData(
                 new ApplicationRole { Id = "1", Name = "Admin", NormalizedName = "ADMIN" },
                 new ApplicationRole { Id = "2", Name = "Patient", NormalizedName = "PATIENT" },
