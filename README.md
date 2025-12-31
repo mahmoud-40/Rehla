@@ -13,9 +13,6 @@
 3. **Wait for services to be healthy** (check with `docker-compose ps`)
 4. **Access the applications:**
    - **API & Swagger Docs**: http://localhost:8080/swagger
-   - **Keycloak Admin**: http://localhost:8081
-     - Username: `admin`
-     - Password: `admin123`
 
 ### Demo Users for Testing
 - **Doctor**: `demo.doctor` / `doctor123`
