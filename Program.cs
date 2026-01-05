@@ -142,6 +142,9 @@ namespace BreastCancer
                         Array.Empty<string>()
                     }
                 });
+
+                // Enable annotations to show SwaggerResponse and SwaggerOperation descriptions
+                c.EnableAnnotations();
             });
             #endregion
 

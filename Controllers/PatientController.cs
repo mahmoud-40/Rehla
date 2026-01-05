@@ -1,13 +1,13 @@
 using BreastCancer.DTO.request;
+using BreastCancer.DTO.response;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace BreastCancer.Controllers
 {
-    /// <summary>
-    /// Controller for managing patient operations
-    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles ="Patient")]
@@ -29,11 +29,15 @@ namespace BreastCancer.Controllers
         /// <param name="pageSize">Page size (default: 10, range: 1-100)</param>
         /// <returns>List of patients with pagination</returns>
         /// <remarks>
-        /// Requires Admin role.
-        /// Returns a paginated list of all patients in the system.
+        /// Requires Admin role. Returns a paginated list of all patients in the system.
         /// </remarks>
         [HttpGet]
         [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Get all patients with pagination")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the list of patients")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid pagination parameters or error occurred")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have Admin role")]
         public async Task<IActionResult> GetAllPatients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
@@ -64,6 +68,12 @@ namespace BreastCancer.Controllers
         /// </remarks>
         [HttpGet("{id}")]
         [Authorize(Roles = "Doctor, Admin, Patient, Caregiver")]
+        [SwaggerOperation(Summary = "Get a patient by UserId")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the patient details")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have required role")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found")]
         public async Task<IActionResult> GetPatientById(string id)
         {
             try
@@ -94,13 +104,17 @@ namespace BreastCancer.Controllers
         /// <param name="patientDto">Patient creation data</param>
         /// <returns>Created patient with generated UserId</returns>
         /// <remarks>
-        /// Requires Admin role.
-        /// Creates both an ApplicationUser and a Patient entity.
+        /// Requires Admin role. Creates both an ApplicationUser and a Patient entity.
         /// A temporary password will be automatically generated for the patient.
         /// The returned ID is the UserId which serves as the Patient's primary key.
         /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Create a new patient")]
+        [SwaggerResponse(StatusCodes.Status201Created, "Patient created successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid patient data or validation errors")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have Admin role")]
         public async Task<IActionResult> CreatePatient([FromBody] PatientCreateDTO patientDto)
         {
             try
@@ -140,12 +154,17 @@ namespace BreastCancer.Controllers
         /// <param name="patientDto">Patient update data</param>
         /// <returns>Updated patient</returns>
         /// <remarks>
-        /// Requires Admin or Patient role.
-        /// Patients can only update their own information.
+        /// Requires Admin or Patient role. Patients can only update their own information.
         /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
         /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin, Patient")]
+        [SwaggerOperation(Summary = "Update an existing patient")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Patient updated successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid patient data or validation errors")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have required role")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdateDTO patientDto)
         {
             try
@@ -186,13 +205,18 @@ namespace BreastCancer.Controllers
         /// <param name="id">Patient UserId (primary key)</param>
         /// <returns>No content on success</returns>
         /// <remarks>
-        /// Requires Admin or Patient role.
-        /// Patients can only delete their own account.
+        /// Requires Admin or Patient role. Patients can only delete their own account.
         /// This is a soft delete operation that sets the IsActive flag to false.
         /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
         /// </remarks>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin, Patient")]
+        [SwaggerOperation(Summary = "Delete a patient (soft delete - sets IsActive to false)")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Patient deleted successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have required role")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found")]
         public async Task<IActionResult> DeletePatient(string id)
         {
             try
@@ -223,13 +247,17 @@ namespace BreastCancer.Controllers
         /// <param name="id">Patient UserId (primary key)</param>
         /// <returns>No content on success</returns>
         /// <remarks>
-        /// Requires Admin role.
-        /// This permanently deletes both the Patient entity and the associated ApplicationUser from the database.
-        /// This operation cannot be undone.
-        /// The ID parameter refers to the UserId which is the primary key of the Patient entity.
+        /// Requires Admin role. This permanently deletes both the Patient entity and the associated ApplicationUser from the database.
+        /// This operation cannot be undone. The ID parameter refers to the UserId which is the primary key of the Patient entity.
         /// </remarks>
         [HttpDelete("{id}/HardDelete")]
         [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Hard delete a patient (permanently remove from database)")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Patient permanently deleted successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have Admin role")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found")]
         public async Task<IActionResult> HardDeletePatient(string id)
         {
             try
@@ -255,4 +283,3 @@ namespace BreastCancer.Controllers
         }
     }
 }
-
