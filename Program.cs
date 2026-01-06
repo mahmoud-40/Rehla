@@ -33,9 +33,9 @@ namespace BreastCancer
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                     options.JsonSerializerOptions.Converters.Add(
-                        new System.Text.Json.Serialization.JsonStringEnumConverter()
-                    );
+                    options.JsonSerializerOptions.Converters.Add(
+                       new System.Text.Json.Serialization.JsonStringEnumConverter()
+                   );
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -76,7 +76,7 @@ namespace BreastCancer
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
-            builder.Services.AddScoped<IAuthTokenService,AuthTokenService>();
+            builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddAutoMapper(cfg =>
@@ -91,7 +91,8 @@ namespace BreastCancer
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options => {
+            }).AddJwtBearer(options =>
+            {
 
                 var jwtOptions = builder.Configuration.GetSection(JwtOptions.JwtOptionsKey)
                     .Get<JwtOptions>() ?? throw new ArgumentException(nameof(JwtOptions));
@@ -153,7 +154,7 @@ namespace BreastCancer
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
