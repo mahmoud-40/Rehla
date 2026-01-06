@@ -22,7 +22,7 @@ namespace BreastCancer.Models
 
         public DateTime? EndDate { get; set; }
 
-        public TreatmentPlanStatus Status { get; set; }
+        public TreatmentPlanStatus Status { get; set; } = TreatmentPlanStatus.NotStarted;
 
         [Required]
         public string PatientId { get; set; }
@@ -32,8 +32,8 @@ namespace BreastCancer.Models
         public string DoctorId { get; set; }
         public virtual Doctor Doctor { get; set; }
 
-        [Required]
-        public virtual ICollection<Medicine> Medicines { get; set; }
+        public virtual ICollection<Medicine> Medicines { get; set; } = new List<Medicine>();
+        public virtual ICollection<TreatmentPlanHistory> History { get; set; } = new List<TreatmentPlanHistory>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? CreatedBy { get; set; }

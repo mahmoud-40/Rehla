@@ -20,5 +20,7 @@ namespace BreastCancer.Models
         [Required]
         public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
         public string? ChangedBy { get; set; }
+
+        public virtual ICollection<TreatmentPlanMedia> Media { get; set; } = new List<TreatmentPlanMedia>();
     }
 }
