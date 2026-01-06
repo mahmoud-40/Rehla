@@ -1,65 +1,114 @@
-﻿# BreastCancer
+﻿# Rehla - Backend API
 
-### Prerequisites
-- Docker & Docker Compose
-- .NET 8 SDK (for local development)
+An AI-powered platform that predicts breast cancer recurrence and provides continuous support for survivors. The system connects patients with doctors and caregivers, offering medical guidance, mental health support, and lifestyle tracking in one place.
 
-### Running the Project
-1. **Clone the repository**
-2. **Start all services:**
-   ```bash
-   docker-compose up -d
-   ```
-3. **Wait for services to be healthy** (check with `docker-compose ps`)
-4. **Access the applications:**
-   - **API & Swagger Docs**: http://localhost:8080/swagger
+## Prerequisites
 
-### Demo Users for Testing
-- **Doctor**: `demo.doctor` / `doctor123`
-- **Patient**: `demo.patient` / `patient123`  
-- **Admin**: `admin` / `admin123`
-- **Caregiver**: `demo.caregiver` / `caregiver123`
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
-## Development Workflow
+## Quick Start
 
-### Branching Strategy
-```
-main (protected)
-├── feature/authentication
-├── feature/patient-management  
-├── feature/ai-prediction
-└── hotfix/critical-bug
+```bash
+# Clone the repository
+git clone https://github.com/mahmoud-40/BreastCancer.git
+cd BreastCancer
+
+# Start all services
+docker-compose up -d --build
+
+# Verify containers are running
+docker-compose ps
 ```
 
-### Working on Features
-1. **Create a feature branch:**
+Wait ~30 seconds for SQL Server to initialize. Both containers should show `Up` status.
+
+## Services
+
+| Service | URL |
+|---------|-----|
+| API | `http://localhost:8086/api` |
+| Swagger | `http://localhost:8086/swagger` |
+| SQL Server | `localhost,1433` |
+
+## Database Connection
+
+| Property | Value |
+|----------|-------|
+| Server | `localhost,1433` |
+| Database | `BreastCancerDB` |
+| User | `sa` |
+| Password | `BC@Password123!` |
+
+## Authentication
+
+Protected endpoints require a JWT token:
+
+```
+Authorization: Bearer <token>
+```
+
+Use Swagger UI to test endpoints and authenticate.
+
+## Docker Commands
+
+```bash
+# Start services
+docker-compose up -d --build
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f backend
+
+# Restart backend
+docker-compose up -d --build backend
+
+# Reset everything (clears database)
+docker-compose down -v
+docker-compose up -d --build
+```
+
+## Troubleshooting
+
+**Container keeps restarting**
+```bash
+docker-compose logs backend
+```
+
+**Cannot connect to database**
+- Ensure SQL Server is healthy: `docker-compose ps`
+- Wait 30 seconds after startup for initialization
+
+**Port conflict**
+```bash
+docker-compose down
+netstat -ano | findstr :8086
+```
+
+## Local Development
+
+For running without Docker:
+
+1. Install .NET 8 SDK and SQL Server
+2. Update connection string in `appsettings.json`
+3. Run:
    ```bash
-   git checkout -b feature/your-feature-name
+   dotnet ef database update
+   dotnet run
    ```
 
-2. **Make your changes and commit:**
-   ```bash
-   git add .
-   git commit -m "feat: add patient profile management"
-   ```
+## Project Structure
 
-3. **Push and create Pull Request:**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-   Then create PR on GitHub
-
-4. **Get code review:**
-   - Wait for **at least 1 review** from another team member
-   - Address any review comments
-
-5. **Merge after approval:**
-   - Once approved, merge to `main`
-   - Delete the feature branch
-
-### Commit Message Convention
-- `feat:` New features
-- `fix:` Bug fixes  
-- `docs:` Documentation
-- `refactor:` Code restructuring
-- `test:` Adding tests
+```
+BreastCancer/
+├── Controllers/          # API endpoints
+├── Models/               # Entity models
+├── Context/              # Database context
+├── Repository/           # Data access layer
+├── Service/              # Business logic
+├── appsettings.json      # Local configuration
+├── appsettings.Docker.json   # Docker configuration
+├── docker-compose.yml    # Docker services
+└── Dockerfile
+```
