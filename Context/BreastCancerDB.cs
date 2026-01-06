@@ -17,6 +17,12 @@ namespace BreastCancer.Context
         public virtual DbSet<Caregiver> Caregivers { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+        public virtual DbSet<TreatmentPlan> TreatmentPlans { get; set; }
+        public virtual DbSet<Medicine> Medicines { get; set; }
+        public virtual DbSet<TreatmentPlanHistory> TreatmentPlanHistories { get; set; }
+        public virtual DbSet<TreatmentPlanMedia> TreatmentPlanMedias { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
