@@ -6,6 +6,7 @@ using BreastCancer.Models;
 using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Service.Interface;
+using BreastCancer.Templates;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ namespace BreastCancer.Service.Implementation
         private readonly IOptions<JwtOptions> jwtOptions;
         private readonly IAuthTokenService _authToken;
         private readonly IMapper _mapper;
+        private readonly IEmailService _emailService; 
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -36,7 +38,8 @@ namespace BreastCancer.Service.Implementation
             IUnitOfWork unitOfWork,
             IOptions<JwtOptions> jwtOptions,
             IAuthTokenService authToken,
-            IMapper mapper
+            IMapper mapper,
+            IEmailService emailService
             )
         {
             this._userManager = userManager;
@@ -46,6 +49,7 @@ namespace BreastCancer.Service.Implementation
             this._authToken = authToken;
             this._mapper = mapper;
             this._jwtOptions = jwtOptions.Value;
+            this._emailService = emailService;
         }
         
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest)
@@ -121,6 +125,54 @@ namespace BreastCancer.Service.Implementation
             return (true, null);
 
         }
+        
+        private async Task<(string Id,bool IsSuccess, IEnumerable<string> Errors)>  CreateUserAsync(BaseRegisterDTO model)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+
+            if (existingUser != null)
+                return (null!,false, new[] { "An account with this email already exists." });
+
+
+            // ToDo: AutoMapper
+            var user = new ApplicationUser
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                UserName = model.Email,
+                Email = model.Email,
+                Address = model.Address,
+                PhoneNumber = model.PhoneNumber,
+                Gender = model.Gender,
+                DateOfBirth = model.DateOfBirth
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+                return (null!, false, result.Errors.Select(e => e.Description)!);
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            user.EmailConfirmationCode = code;
+            user.EmailConfirmationCodeExpireAt = DateTime.UtcNow.AddMinutes(5).ToLocalTime();
+
+            await _userManager.UpdateAsync(user);
+
+            var body = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
+            await _emailService.SendEmailAsync(user.Email!, "Confirm Your Email Address", body);
+            
+            
+
+            // Assign Role
+            var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+
+            if (!roleResult.Succeeded)
+                return (null!,false, roleResult.Errors.Select(e => e.Description)!);
+
+            return (user.Id!, true, null!);
+        }
+
         public async Task<TokenResponseDTO> LoginAsync(LoginDTO loginDTO)
         {
             var user = await _userManager.FindByEmailAsync(loginDTO.Email);
@@ -129,8 +181,18 @@ namespace BreastCancer.Service.Implementation
                 return new TokenResponseDTO
                 {
                     IsSuccess =false,
-                    Errors = new[] {"Invaild Email or Password"}
+                    Errors = new[] { "Invalid email or password." }
                 };
+
+            var checkIfTheEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+
+            if (!checkIfTheEmailConfirmed)
+                return new TokenResponseDTO
+                {
+                    IsSuccess = false,
+                    Errors = new[] { "Please confirm your email first" }
+                };
+
 
             bool IsValid = await _userManager.CheckPasswordAsync(user, loginDTO.Password);
 
@@ -138,7 +200,7 @@ namespace BreastCancer.Service.Implementation
                 return new TokenResponseDTO
                 {
                     IsSuccess = false,
-                    Errors = new[] { "Invaild Email or Password" }
+                    Errors = new[] { "Invalid email or password." }
                 };
 
 
@@ -180,41 +242,56 @@ namespace BreastCancer.Service.Implementation
 
         }
 
-        private async Task<(string Id,bool IsSuccess, IEnumerable<string> Errors)>  CreateUserAsync (BaseRegisterDTO model)
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> ConfirmEmailAsync(ConfirmEmailDTO Confirm)
         {
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            var user = await _userManager.FindByEmailAsync(Confirm.Email);
+            if (user == null)
+                return (false,new[] { "Invalid user" });
 
-            if (existingUser != null)
-                return (null,false, new[] { "Email Already Exists" });
+            if (user.EmailConfirmed)
+                return (false, new[] { "This email has already been confirmed." });
+          
+            if(user.EmailConfirmationCodeExpireAt < DateTime.UtcNow.ToLocalTime())
+                return (false, new[] { "The confirmation code has expired." });
 
+            if (user.EmailConfirmationCode != Confirm.Code)
+                return (false, new[] { "Invalid confirmation code." });
 
-            // ToDo: AutoMapper
-            var user = new ApplicationUser
-            {
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                UserName = model.Email,
-                Email = model.Email,
-                Address = model.Address,
-                PhoneNumber = model.PhoneNumber,
-                Gender = model.Gender,
-                DateOfBirth = model.DateOfBirth
-            };
+            var result = await _userManager.ConfirmEmailAsync(user, Confirm.Code);
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            if(!result.Succeeded)
+                return (false, new[] { "Invalid confirmation code." });
 
-            if (!result.Succeeded)
-                return (null,false, result.Errors.Select(e => e.Description));
+            user.EmailConfirmationCodeExpireAt = null;
 
-            // Assign Role
-            var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+            await _userManager.UpdateAsync(user);
 
-            if (!roleResult.Succeeded)
-                return (null,false, roleResult.Errors.Select(e => e.Description));
+            return (true, null!);
 
-            return (user.Id, true, null);
         }
 
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> ResendConfirmationCodeAsync(string Email)
+        {
+            var user = await _userManager.FindByEmailAsync(Email);
+
+            if (user == null)
+                return (false,new[] { "Invaild user" });
+
+            if(user.EmailConfirmed)
+                return (false, new[] { "This email has already been confirmed." });
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            user.EmailConfirmationCode = code;
+            user.EmailConfirmationCodeExpireAt = DateTime.UtcNow.AddMinutes(5).ToLocalTime();
+
+            await _userManager.UpdateAsync(user);
+
+            var body = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
+            await _emailService.SendEmailAsync(user.Email!, "Confirm Your Email Address", body);
+
+            return (true, null!);
+        }
         public async Task<bool> LogoutAsync(LogoutDTO dto)
         {
             var token = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(dto.RefreshToken);
@@ -235,7 +312,7 @@ namespace BreastCancer.Service.Implementation
         {
             var tokenEntity = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(Token.RefreshToken);
 
-            if (tokenEntity == null || tokenEntity.ExpiresAt < DateTime.UtcNow || tokenEntity.IsRevoked)
+            if (tokenEntity == null || tokenEntity.ExpiresAt < DateTime.UtcNow.ToLocalTime() || tokenEntity.IsRevoked)
             {
                 return new TokenResponseDTO
                 {
@@ -254,6 +331,116 @@ namespace BreastCancer.Service.Implementation
                 ExpiresTime = accessToken.expiresAtUtc.ToLocalTime(),
                 RefreshToken = Token.RefreshToken
             };
+        }
+
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> ResetPasswordAsync(ResetPasswordDTO resetPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(resetPassword.Email);
+            if (user == null)
+                return (false, new[] { "Invalid user" });
+
+            // Validate current password
+            if (!await _userManager.CheckPasswordAsync(user, resetPassword.CurrentPassword))
+                return (false, new[] { "Current password is incorrect." });
+
+            // Prevent reuse
+            if (await _userManager.CheckPasswordAsync(user, resetPassword.Password))
+                return (false, new[] { "New password must be different from the old password." });
+
+            var result = await _userManager.ChangePasswordAsync(user, resetPassword.CurrentPassword, resetPassword.Password);
+            await _userManager.UpdateSecurityStampAsync(user);
+            if (result.Succeeded)
+            {
+                var body = EmailTemplates.GetPasswordResetSuccessEmail(user.FullName);
+                await _emailService.SendEmailAsync(user.Email!, "Your Password Has Been Changed", body);
+                return (true, null!);
+            }
+
+            var errors = result.Errors
+                    .Select(e => e.Description)
+                    .ToArray();
+
+            return (false, errors);
+
+        }
+
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> SendForgetPasswordCodeAsync(string Email)
+        {
+            var user = await _userManager.FindByEmailAsync(Email);
+            if (user == null)
+                return (false, new[] { "Invalid user" });
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var numericCode = GenerateNumericCode();
+
+            user.PasswordResetToken = resetToken;
+            user.PasswordResetCode = numericCode;
+            user.PasswordResetExpireAt = DateTime.UtcNow.AddMinutes(5).ToLocalTime();
+
+            var result = await _userManager.UpdateAsync(user);
+
+
+            if (result.Succeeded)
+            {
+                var body = EmailTemplates.GetForgetPasswordEmail(user.FullName, numericCode);
+                await _emailService.SendEmailAsync(user.Email!, "Reset Your Password", body);
+                return (true, null!);
+            }
+
+            var errors = result.Errors
+                    .Select(e => e.Description)
+                    .ToArray();
+
+            return (false, errors);
+
+        }
+        public async Task<(bool IsSuccess, IEnumerable<string> Errors)> ForgetPasswordAsync(ForgetPasswordDTO forgetPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(forgetPassword.Email);
+            if (user == null)
+                return (false, new[] { "Invalid user" });
+
+            if (user.PasswordResetExpireAt == null || user.PasswordResetExpireAt < DateTime.UtcNow.ToLocalTime())
+                return (false, new[] { "The confirmation code has expired." });
+
+            if (user.PasswordResetCode != forgetPassword.Code)
+                return (false, new[] { "Invalid reset code." });
+
+            var result = await _userManager.ResetPasswordAsync(user, user.PasswordResetToken!, forgetPassword.Password);
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors
+                    .Select(e => e.Description)
+                    .ToArray();
+
+                return (false, errors);
+            }
+
+
+            user.PasswordResetExpireAt = null;
+            user.PasswordResetToken = null;
+            user.PasswordResetCode = null;
+
+            await _userManager.UpdateAsync(user);
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            var body = EmailTemplates.GetPasswordResetSuccessEmail(user.FullName);
+            await _emailService.SendEmailAsync(user.Email!, "Your Password Has Been Changed", body);
+
+            return (true, null!);
+
+        }
+
+        private static string GenerateNumericCode(int length = 6)
+        {
+            var bytes = RandomNumberGenerator.GetBytes(length);
+            var result = new StringBuilder(length);
+
+            foreach (var b in bytes)
+                result.Append((b % 10).ToString());
+
+            return result.ToString();
         }
     }
 }

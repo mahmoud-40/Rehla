@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace BreastCancer.Models
 {
@@ -42,7 +42,12 @@ namespace BreastCancer.Models
         public string? CreatedBy { get; set; }
         public string? UpdatedBy { get; set; }
 
+        public string? PasswordResetToken { get; set; }
+        public string? EmailConfirmationCode { get; set; }
 
+        public DateTime? EmailConfirmationCodeExpireAt { get; set; }
+        public string? PasswordResetCode { get; set; }
+        public DateTime? PasswordResetExpireAt { get; set; }
         public virtual Caregiver? Caregiver { get; set; } = null;
         public virtual Doctor? Doctor { get; set; } = null;
         public virtual Patient? Patient { get; set; } = null;

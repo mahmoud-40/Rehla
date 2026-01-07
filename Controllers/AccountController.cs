@@ -40,7 +40,7 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.DoctorRegister(doctor);
             if (result.IsSuccess)
-                return Ok(new { Message = "Doctor registered successfully" });
+                return Ok(new { message = "Doctor account created successfully. Please check your email to confirm your account." });
 
             foreach (var error in result.Errors)
             {
@@ -70,7 +70,8 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.PatientRegister(patient);
             if (result.IsSuccess)
-                return Ok(new { Message = "Patient registered successfully" });
+                return Ok(new { message = "Patient account created successfully. Please check your email to confirm your account." });
+
 
             foreach (var error in result.Errors)
             {
@@ -100,7 +101,8 @@ namespace BreastCancer.Controllers
 
             var result = await accountService.CaregiverRegister(caregiver);
             if (result.IsSuccess)
-                return Ok(new { Message = "Caregiver registered successfully" });
+                return Ok(new { message = "Caregiver account created successfully. Please check your email to confirm your account." });
+
 
             foreach (var error in result.Errors)
             {
@@ -200,5 +202,52 @@ namespace BreastCancer.Controllers
             });
         }
 
+        // ====================== PASSWORD ======================
+        [HttpPost("reset-password")]
+        [Authorize]
+        public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDTO resetPassword)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.ResetPasswordAsync(resetPassword);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Password updated successfully." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+        }
+
+        [HttpPost("forget-password/code")]
+        public async Task<IActionResult> SendForgetPasswordCodeAsync(string Email)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.SendForgetPasswordCodeAsync(Email);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "A password reset code has been sent to your email." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+        }
+        [HttpPost("forget-password/confirm")]
+        public async Task<IActionResult> ForgetPasswordAsync(ForgetPasswordDTO forgetPassword)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.ForgetPasswordAsync(forgetPassword);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Password has been reset successfully." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+        }
+
+        
     }
 }
