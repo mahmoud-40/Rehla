@@ -10,7 +10,7 @@ namespace BreastCancer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Doctor")]
+    //[Authorize(Roles = "Doctor")]
     public class DoctorController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -251,7 +251,7 @@ namespace BreastCancer.Controllers
         /// This operation cannot be undone. The ID parameter refers to the UserId which is the primary key of the Doctor entity.
         /// </remarks>
         [HttpDelete("{id}/HardDelete")]
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Hard delete a doctor (permanently remove from database)")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Doctor permanently deleted successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]

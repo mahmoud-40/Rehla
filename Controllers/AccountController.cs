@@ -21,18 +21,30 @@ namespace BreastCancer.Controllers
             this.accountService = accountService;
         }
 
+        // ============================== REGISTER ==============================
         /// <summary>
-        /// Register a new doctor account
+        /// Registers a new doctor account.
         /// </summary>
-        /// <param name="doctor">Doctor registration data</param>
-        /// <returns>Success message</returns>
+        /// <param name="doctor">Doctor registration data.</param>
         /// <remarks>
-        /// Creates a new doctor account in the system. Requires valid registration data including personal information and professional details.
+        /// Creates a new doctor account and sends an email confirmation code.
+        /// 
+        /// Password Rules:
+        /// - Minimum 8 characters
+        /// - At least one uppercase letter
+        /// - At least one lowercase letter
+        /// - At least one digit
+        /// - At least one special character
+        /// 
+        /// The user cannot login until the email is confirmed.
         /// </remarks>
         [HttpPost("Register/Doctor")]
-        [SwaggerOperation(Summary = "Register a new doctor account")]
+        [SwaggerOperation(
+            Summary = "Register a new doctor account",
+            Description = "Creates a doctor account and sends an email confirmation code."
+        )]
         [SwaggerResponse(StatusCodes.Status200OK, "Doctor registered successfully")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation failed or email already exists")]       
         public async Task<IActionResult> RegisterDoctor(DoctorRegisterDTO doctor)
         {
             if (!ModelState.IsValid)
@@ -52,17 +64,23 @@ namespace BreastCancer.Controllers
         }
 
         /// <summary>
-        /// Register a new patient account
+        /// Registers a new patient account.
         /// </summary>
-        /// <param name="patient">Patient registration data</param>
-        /// <returns>Success message</returns>
+        /// <param name="patient">Patient registration data.</param>
         /// <remarks>
-        /// Creates a new patient account in the system. Requires valid registration data including personal information and optional medical history.
+        /// Creates a new patient account and sends a confirmation email.
+        /// Email confirmation is required before login.
+        /// 
+        /// Password Rules:
+        /// Minimum 8 characters, uppercase, lowercase, digit, special character.
         /// </remarks>
         [HttpPost("Register/Patient")]
-        [SwaggerOperation(Summary = "Register a new patient account")]
+        [SwaggerOperation(
+            Summary = "Register a new patient account",
+            Description = "Creates patient account and sends email confirmation."
+        )]
         [SwaggerResponse(StatusCodes.Status200OK, "Patient registered successfully")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation failed")]
         public async Task<IActionResult> RegisterPatient(PatientRegisterDTO patient)
         {
             if (!ModelState.IsValid)
@@ -83,17 +101,22 @@ namespace BreastCancer.Controllers
         }
 
         /// <summary>
-        /// Register a new caregiver account
+        /// Registers a new caregiver account.
         /// </summary>
-        /// <param name="caregiver">Caregiver registration data</param>
-        /// <returns>Success message</returns>
+        /// <param name="caregiver">Caregiver registration data.</param>
         /// <remarks>
-        /// Creates a new caregiver account linked to a specific patient. Requires valid registration data and patient ID.
+        /// Creates a caregiver account linked to a patient using PatientId.
+        /// 
+        /// Password Rules:
+        /// Minimum 8 characters, uppercase, lowercase, digit, special character.
         /// </remarks>
         [HttpPost("Register/Caregiver")]
-        [SwaggerOperation(Summary = "Register a new caregiver account")]
+        [SwaggerOperation(
+            Summary = "Register a new caregiver account",
+            Description = "Creates caregiver account linked to a patient."
+        )]
         [SwaggerResponse(StatusCodes.Status200OK, "Caregiver registered successfully")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid patient ID or validation failed")]
         public async Task<IActionResult> RegisterCaregiver(CaregiverRegisterDTO caregiver)
         {
             if (!ModelState.IsValid)
@@ -113,19 +136,83 @@ namespace BreastCancer.Controllers
             return BadRequest(ModelState);
         }
 
+        // ============================== AUTH ==============================
         /// <summary>
-        /// Authenticate user and receive JWT tokens
+        /// Confirms user's email address.
         /// </summary>
-        /// <param name="userFromRequest">Login credentials (email and password)</param>
-        /// <returns>JWT access token, refresh token, and expiration time</returns>
+        /// <param name="confirmEmail">Email confirmation data.</param>
         /// <remarks>
-        /// Authenticates a user with their email and password. Returns JWT tokens for authorized API access.
-        /// Use the access token in the Authorization header: "Bearer {accessToken}"
+        /// Confirms the user's email using the confirmation code sent after registration.
+        /// The user cannot log in until the email is successfully confirmed.
+        /// </remarks>
+        [HttpPost("ConfirmEmail")]
+        [SwaggerOperation(
+            Summary = "Confirm email address",
+            Description = "Validates confirmation code and activates the user account."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Email confirmed successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid or expired confirmation code")]
+        public async Task<IActionResult> ConfirmEmailAsync(ConfirmEmailDTO confirmEmail)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.ConfirmEmailAsync(confirmEmail);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Email confirmed successfully. You can now log in." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+
+        }
+
+        /// <summary>
+        /// Resends email confirmation code.
+        /// </summary>
+        /// <param name="Email">Registered email address.</param>
+        /// <remarks>
+        /// Sends a new email confirmation code if the previous one expired or was not received.
+        /// </remarks>
+        [HttpPost("ResendConfirmation")]
+        [SwaggerOperation(
+            Summary = "Resend email confirmation code",
+            Description = "Sends a new email confirmation code to the user's email."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Confirmation email sent")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Email not found or already confirmed")]
+        public async Task<IActionResult> ResendConfirmationAsync(string Email)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.ResendConfirmationCodeAsync(Email);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Confirmation email has been sent. Please check your inbox." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+
+        }
+
+
+        /// <summary>
+        /// Authenticates user and returns JWT tokens.
+        /// </summary>
+        /// <param name="userFromRequest">Login credentials.</param>
+        /// <remarks>
+        /// User must confirm email before login.
+        /// Returns AccessToken, RefreshToken, and expiration time.
         /// </remarks>
         [HttpPost("Login")]
-        [SwaggerOperation(Summary = "Authenticate user and receive JWT tokens")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Authentication successful, returns access token and refresh token")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid credentials or validation errors")]
+        [SwaggerOperation(
+            Summary = "Authenticate user",
+            Description = "Returns JWT access token and refresh token."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Login successful")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid credentials")]
+
         public async Task<IActionResult> Login(LoginDTO userFromRequest)
         {
             if (!ModelState.IsValid)
@@ -145,19 +232,22 @@ namespace BreastCancer.Controllers
         }
 
         /// <summary>
-        /// Logout and invalidate refresh token
+        /// Logs out current user.
         /// </summary>
-        /// <param name="logoutDTO">Refresh token to invalidate</param>
-        /// <returns>Success message</returns>
+        /// <param name="logoutDTO">Refresh token.</param>
         /// <remarks>
-        /// Logs out the current user by invalidating the provided refresh token. Requires authentication.
+        /// Invalidates the refresh token.
+        /// Requires authentication.
         /// </remarks>
-        [HttpPost("Logout")]
         [Authorize]
-        [SwaggerOperation(Summary = "Logout and invalidate refresh token")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Logged out successfully")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid refresh token")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [HttpPost("Logout")]
+        [SwaggerOperation(
+            Summary = "Logout user",
+            Description = "Invalidates refresh token."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Logout successful")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+
         public async Task<IActionResult> LogoutAsync(LogoutDTO logoutDTO)
         {
             if (!ModelState.IsValid)
@@ -172,19 +262,20 @@ namespace BreastCancer.Controllers
         }
 
         /// <summary>
-        /// Refresh access token using refresh token
+        /// Refreshes JWT access token.
         /// </summary>
-        /// <param name="refreshToken">Refresh token DTO containing the refresh token</param>
-        /// <returns>New JWT access token, refresh token, and expiration time</returns>
+        /// <param name="refreshToken">Refresh token data.</param>
         /// <remarks>
-        /// Generates a new access token and refresh token pair using a valid refresh token.
-        /// Use this endpoint when the access token expires.
+        /// Generates a new access token when the old one expires.
         /// </remarks>
         [HttpPost("RefreshToken")]
-        [SwaggerOperation(Summary = "Refresh access token using refresh token")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Token refresh successful, returns new access token and refresh token")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request data")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Invalid or expired refresh token")]
+        [SwaggerOperation(
+            Summary = "Refresh JWT token",
+            Description = "Returns new access token and refresh token."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Token refreshed successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Invalid refresh token")]
+
         public async Task<IActionResult> RefreshToken([FromBody]RefreshTokenDTO refreshToken)
         {
             if (!ModelState.IsValid)
@@ -203,8 +294,21 @@ namespace BreastCancer.Controllers
         }
 
         // ====================== PASSWORD ======================
-        [HttpPost("reset-password")]
+        /// <summary>
+        /// Changes password for authenticated user.
+        /// </summary>
+        /// <param name="resetPassword">New password data.</param>
+        /// <remarks>
+        /// Requires authentication.
+        /// Password rules apply.
+        /// </remarks>
         [Authorize]
+        [HttpPost("reset-password")]
+        [SwaggerOperation(
+            Summary = "Reset password",
+            Description = "Allows authenticated user to change password."
+        )]
+
         public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDTO resetPassword)
         {
             if (!ModelState.IsValid)
@@ -219,7 +323,19 @@ namespace BreastCancer.Controllers
             return BadRequest(ModelState);
         }
 
+        /// <summary>
+        /// Sends password reset code to user's email.
+        /// </summary>
+        /// <param name="Email">Registered email address.</param>
+        /// <remarks>
+        /// Sends a one-time reset code to the user's email.
+        /// </remarks>
         [HttpPost("forget-password/code")]
+        [SwaggerOperation(
+            Summary = "Send password reset code",
+            Description = "Sends reset code to user's email."
+        )]
+
         public async Task<IActionResult> SendForgetPasswordCodeAsync(string Email)
         {
             if (!ModelState.IsValid)
@@ -233,7 +349,20 @@ namespace BreastCancer.Controllers
             ModelState.AddModelError("", result.Errors.First());
             return BadRequest(ModelState);
         }
+        
+        /// <summary>
+        /// Resets password using confirmation code.
+        /// </summary>
+        /// <param name="forgetPassword">Reset password data.</param>
+        /// <remarks>
+        /// Validates reset code and updates the password.
+        /// Password rules apply.
+        /// </remarks>
         [HttpPost("forget-password/confirm")]
+        [SwaggerOperation(
+            Summary = "Confirm password reset",
+            Description = "Validates reset code and updates password."
+        )]
         public async Task<IActionResult> ForgetPasswordAsync(ForgetPasswordDTO forgetPassword)
         {
             if (!ModelState.IsValid)
