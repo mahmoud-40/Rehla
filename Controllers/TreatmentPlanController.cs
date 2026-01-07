@@ -25,19 +25,6 @@ namespace BreastCancer.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Create a new treatment plan
-        /// </summary>
-        /// <param name="treatmentPlanDto">Treatment plan creation data including medicines</param>
-        /// <returns>Created treatment plan with medicines</returns>
-        /// <remarks>
-        /// Creates a new treatment plan for the authenticated patient. 
-        /// The patient ID is automatically extracted from the JWT token.
-        /// Requires at least one medicine to be added to the plan.
-        /// Doctor information can be provided either by DoctorId (if doctor exists in system) or DoctorName (for manual entry).
-        /// Medicines will have their initial NextAlert set to StartTime. After the user marks a medicine as taken, 
-        /// the NextAlert will be recalculated as LastTaken + IntervalHours.
-        /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Patient, Admin")]
         [SwaggerOperation(Summary = "Create a new treatment plan")]
@@ -79,21 +66,6 @@ namespace BreastCancer.Controllers
             }
         }
 
-        /// <summary>
-        /// Update an existing treatment plan
-        /// </summary>
-        /// <param name="id">Treatment plan ID</param>
-        /// <param name="treatmentPlanDto">Treatment plan update data</param>
-        /// <returns>Updated treatment plan with medicines</returns>
-        /// <remarks>
-        /// Updates an existing treatment plan. Only provided properties will be updated (null/empty values are ignored).
-        /// Patients can only update their own treatment plans.
-        /// 
-        /// **Medicine Updates:**
-        /// - Medicines with an `Id` will be updated (only non-null properties)
-        /// - Medicines without an `Id` will be created as new medicines
-        /// - Existing medicines not included in the `Medicines` array will be deleted
-        /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Patient, Admin")]
         [SwaggerOperation(Summary = "Update an existing treatment plan")]
@@ -142,17 +114,6 @@ namespace BreastCancer.Controllers
             }
         }
 
-        /// <summary>
-        /// Mark a medicine as taken
-        /// </summary>
-        /// <param name="medicineId">Medicine ID</param>
-        /// <returns>Updated medicine with recalculated NextAlert</returns>
-        /// <remarks>
-        /// Marks a medicine as taken when the user clicks the "Take Medicine" button.
-        /// **Example:**
-        /// If the interval is 8 hours, but the user was late and took the medicine at 10:00 AM, 
-        /// the next alert will be set to 6:00 PM (not based on the original schedule, but on the actual event).
-        /// </remarks>
         [HttpPost("medicines/{medicineId}/mark-taken")]
         [Authorize(Roles = "Patient, Admin")]
         [SwaggerOperation(Summary = "Mark a medicine as taken")]
