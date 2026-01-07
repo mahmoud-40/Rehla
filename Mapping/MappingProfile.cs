@@ -121,6 +121,75 @@ namespace BreastCancer.Mapping
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             #endregion
+
+            #region TreatmentPlan Mapping
+
+            // Map TreatmentPlanCreateDTO to TreatmentPlan
+            CreateMap<TreatmentPlanCreateDTO, TreatmentPlan>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.PatientId, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore())
+                .ForMember(dest => dest.Doctor, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.History, opt => opt.Ignore());
+
+            // Map MedicineCreateDTO to Medicine
+            CreateMap<MedicineCreateDTO, Medicine>()
+                .ForMember(dest => dest.Instruction, opt => opt.MapFrom(src => src.Instructions))
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.TreatmentPlanId, opt => opt.Ignore())
+                .ForMember(dest => dest.TreatmentPlan, opt => opt.Ignore())
+                .ForMember(dest => dest.EndTime, opt => opt.Ignore())
+                .ForMember(dest => dest.LastTaken, opt => opt.Ignore())
+                .ForMember(dest => dest.NextAlert, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore());
+
+            // Map TreatmentPlan to TreatmentPlanResponseDTO
+            CreateMap<TreatmentPlan, TreatmentPlanResponseDTO>()
+                .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => 
+                    !string.IsNullOrEmpty(src.DoctorId) && src.Doctor != null && src.Doctor.User != null
+                        ? src.Doctor.User.FullName 
+                        : src.DoctorName));
+
+            // Map Medicine to MedicineResponseDTO
+            CreateMap<Medicine, MedicineResponseDTO>()
+                .ForMember(dest => dest.Instructions, opt => opt.MapFrom(src => src.Instruction));
+
+            // Map TreatmentPlanUpdateDTO to TreatmentPlan
+            CreateMap<TreatmentPlanUpdateDTO, TreatmentPlan>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.PatientId, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore())
+                .ForMember(dest => dest.Doctor, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.History, opt => opt.Ignore())
+                .ForMember(dest => dest.Medicines, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // Map MedicineUpdateDTO to Medicine
+            CreateMap<MedicineUpdateDTO, Medicine>()
+                .ForMember(dest => dest.Instruction, opt => opt.MapFrom(src => src.Instructions))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id ?? 0))
+                .ForMember(dest => dest.TreatmentPlanId, opt => opt.Ignore())
+                .ForMember(dest => dest.TreatmentPlan, opt => opt.Ignore())
+                .ForMember(dest => dest.NextAlert, opt => opt.Ignore()) // Will be recalculated in service when LastTaken is updated
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            #endregion
         }
     }
 }

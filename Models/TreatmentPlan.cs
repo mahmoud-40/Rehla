@@ -28,9 +28,11 @@ namespace BreastCancer.Models
         public string PatientId { get; set; }
         public virtual Patient Patient { get; set; }
         
-        [Required]
-        public string DoctorId { get; set; }
-        public virtual Doctor Doctor { get; set; }
+        public string? DoctorId { get; set; } // Optional - patient can manually input doctor name
+        public virtual Doctor? Doctor { get; set; }
+        
+        [MaxLength(100)]
+        public string? DoctorName { get; set; } // For manual entry when DoctorId is null
 
         public virtual ICollection<Medicine> Medicines { get; set; } = new List<Medicine>();
         public virtual ICollection<TreatmentPlanHistory> History { get; set; } = new List<TreatmentPlanHistory>();
