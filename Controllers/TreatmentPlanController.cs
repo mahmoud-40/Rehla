@@ -93,13 +93,6 @@ namespace BreastCancer.Controllers
         /// - Medicines with an `Id` will be updated (only non-null properties)
         /// - Medicines without an `Id` will be created as new medicines
         /// - Existing medicines not included in the `Medicines` array will be deleted
-        /// 
-        /// **Dynamic Medicine Scheduling:**
-        /// - When updating a medicine's `LastTaken` property, the `NextAlert` will be automatically recalculated as `LastTaken + IntervalHours`
-        /// - If `IntervalHours` is updated and `LastTaken` exists, `NextAlert` will be recalculated with the new interval
-        /// - If the calculated `NextAlert` exceeds the medicine's `EndTime`, `NextAlert` will be set to null (no more alerts)
-        /// 
-        /// **Note:** This endpoint uses partial update - only send the fields you want to update.
         /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Patient, Admin")]
@@ -146,6 +139,60 @@ namespace BreastCancer.Controllers
             {
                 _logger.LogError(ex, "Error updating treatment plan");
                 return BadRequest(new { message = "An error occurred while updating the treatment plan." });
+            }
+        }
+
+        /// <summary>
+        /// Mark a medicine as taken
+        /// </summary>
+        /// <param name="medicineId">Medicine ID</param>
+        /// <returns>Updated medicine with recalculated NextAlert</returns>
+        /// <remarks>
+        /// Marks a medicine as taken when the user clicks the "Take Medicine" button.
+        /// **Example:**
+        /// If the interval is 8 hours, but the user was late and took the medicine at 10:00 AM, 
+        /// the next alert will be set to 6:00 PM (not based on the original schedule, but on the actual event).
+        /// </remarks>
+        [HttpPost("medicines/{medicineId}/mark-taken")]
+        [Authorize(Roles = "Patient, Admin")]
+        [SwaggerOperation(Summary = "Mark a medicine as taken")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Medicine marked as taken successfully with updated NextAlert")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid operation (e.g., medicine has ended)")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - User does not have required role or does not own the treatment plan")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Medicine not found")]
+        public async Task<IActionResult> MarkMedicineAsTaken(int medicineId)
+        {
+            try
+            {
+                // Get patient ID from JWT token claims
+                var patientId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(patientId))
+                {
+                    return Unauthorized(new { message = "Unable to identify patient from token." });
+                }
+
+                var updatedMedicine = await _treatmentPlanService.MarkMedicineAsTakenAsync(medicineId, patientId);
+                return Ok(updatedMedicine);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation while marking medicine as taken");
+                if (ex.Message.Contains("not found"))
+                {
+                    return NotFound(new { message = ex.Message });
+                }
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Unauthorized access attempt to mark medicine as taken");
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking medicine as taken");
+                return BadRequest(new { message = "An error occurred while marking the medicine as taken." });
             }
         }
     }

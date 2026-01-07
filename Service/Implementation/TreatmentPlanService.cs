@@ -135,29 +135,8 @@ namespace BreastCancer.Service.Implementation
                                 
                                 if (lastTakenWasUpdated || intervalWasUpdated)
                                 {
-                                    // Use the updated LastTaken or current time if not provided
-                                    var lastTakenTime = existingMedicine.LastTaken ?? DateTime.UtcNow;
-                                    
-                                    // Check if medicine has ended
-                                    if (existingMedicine.EndTime.HasValue && DateTime.UtcNow > existingMedicine.EndTime.Value)
-                                    {
-                                        existingMedicine.NextAlert = null; // Medicine has ended
-                                    }
-                                    else if (existingMedicine.LastTaken.HasValue)
-                                    {
-                                        // Recalculate NextAlert = LastTaken + IntervalHours
-                                        var nextAlertTime = lastTakenTime.AddHours(existingMedicine.IntervalHours);
-                                        
-                                        // If medicine has an EndTime, ensure NextAlert doesn't exceed it
-                                        if (existingMedicine.EndTime.HasValue && nextAlertTime > existingMedicine.EndTime.Value)
-                                        {
-                                            existingMedicine.NextAlert = null; // No more alerts after end time
-                                        }
-                                        else
-                                        {
-                                            existingMedicine.NextAlert = nextAlertTime;
-                                        }
-                                    }
+                                    // Use helper method to recalculate NextAlert
+                                    RecalculateNextAlert(existingMedicine);
                                 }
                                 
                                 existingMedicine.UpdatedAt = DateTime.UtcNow;
@@ -205,6 +184,85 @@ namespace BreastCancer.Service.Implementation
             {
                 _logger.LogError(ex, "Error updating treatment plan with ID: {TreatmentPlanId} for patient: {PatientId}", id, patientId);
                 throw;
+            }
+        }
+
+        public async Task<MedicineResponseDTO> MarkMedicineAsTakenAsync(int medicineId, string patientId)
+        {
+            try
+            {
+                // Get medicine with its treatment plan
+                var medicine = await _unitOfWork.TreatmentPlansRepository.GetMedicineByIdAsync(medicineId);
+                if (medicine == null)
+                {
+                    throw new InvalidOperationException($"Medicine with ID '{medicineId}' not found.");
+                }
+
+                // Verify patient owns the treatment plan
+                if (medicine.TreatmentPlan?.PatientId != patientId)
+                {
+                    throw new UnauthorizedAccessException("You do not have permission to mark this medicine as taken.");
+                }
+
+                // Check if medicine has ended
+                if (medicine.EndTime.HasValue && DateTime.UtcNow > medicine.EndTime.Value)
+                {
+                    throw new InvalidOperationException($"Medicine '{medicine.Name}' has already ended on {medicine.EndTime.Value:yyyy-MM-dd HH:mm} UTC.");
+                }
+
+                // Record the current timestamp as last_taken
+                var currentTime = DateTime.UtcNow;
+                medicine.LastTaken = currentTime;
+
+                // Dynamically recalculate NextAlert = LastTaken + IntervalHours
+                RecalculateNextAlert(medicine);
+
+                medicine.UpdatedAt = currentTime;
+                // TODO: Set UpdatedBy from authenticated user context
+
+                // Save changes - EF Core change tracking will detect Medicine updates automatically
+                await _unitOfWork.SaveAsync();
+
+                // Return updated medicine
+                return _mapper.Map<MedicineResponseDTO>(medicine);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking medicine {MedicineId} as taken for patient: {PatientId}", medicineId, patientId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Helper method to recalculate NextAlert based on LastTaken and IntervalHours
+        /// </summary>
+        private void RecalculateNextAlert(Medicine medicine)
+        {
+            if (!medicine.LastTaken.HasValue)
+            {
+                return; // Cannot recalculate without LastTaken
+            }
+
+            var lastTakenTime = medicine.LastTaken.Value;
+
+            // Check if medicine has ended
+            if (medicine.EndTime.HasValue && DateTime.UtcNow > medicine.EndTime.Value)
+            {
+                medicine.NextAlert = null; // Medicine has ended
+                return;
+            }
+
+            // Calculate NextAlert = LastTaken + IntervalHours
+            var nextAlertTime = lastTakenTime.AddHours(medicine.IntervalHours);
+
+            // If medicine has an EndTime, ensure NextAlert doesn't exceed it
+            if (medicine.EndTime.HasValue && nextAlertTime > medicine.EndTime.Value)
+            {
+                medicine.NextAlert = null; // No more alerts after end time
+            }
+            else
+            {
+                medicine.NextAlert = nextAlertTime;
             }
         }
     }
