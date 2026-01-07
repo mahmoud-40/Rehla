@@ -52,11 +52,16 @@ namespace BreastCancer
                 // User Email Setting
                 options.User.RequireUniqueEmail = true;
 
+                // Email Confirm
+                options.SignIn.RequireConfirmedEmail = true;
+                options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+
                 // Lockout Settings
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 
-            }).AddEntityFrameworkStores<BreastCancerDB>();
+            }).AddEntityFrameworkStores<BreastCancerDB>()
+            .AddDefaultTokenProviders();
             #endregion
 
             builder.Services.AddDbContext<BreastCancerDB>(options =>

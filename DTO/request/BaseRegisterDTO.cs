@@ -1,5 +1,6 @@
 ﻿using BreastCancer.Enum;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace BreastCancer.DTO.request
 {
@@ -29,6 +30,11 @@ namespace BreastCancer.DTO.request
 
         public virtual string Role { get; set; }
 
+        [JsonIgnore]
+        public string? EmailConfirmationCode { get; set; }
+
+        [JsonIgnore]
+        public DateTime? EmailConfirmationCodeExpiresAt { get; set; }
 
         [DataType(DataType.Password)]
         public string Password { get; set; }
