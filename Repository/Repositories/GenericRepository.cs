@@ -1,6 +1,7 @@
 ﻿using BreastCancer.Context;
 using BreastCancer.Repository.Interface;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace BreastCancer.Repository.Repositories
@@ -37,7 +38,7 @@ namespace BreastCancer.Repository.Repositories
             return await _dbSet.ToListAsync();
         }
 
-        public async Task<T?> GetByIdAsync(int id)
+        public async Task<T?> GetByIdAsync(string id)
         {
             return await _dbSet.FindAsync(id);
         }
@@ -47,6 +48,29 @@ namespace BreastCancer.Repository.Repositories
             await _Context.SaveChangesAsync();
         }
 
-        
+        public async Task<IEnumerable<T>> FilterAsync(
+            Expression<Func<T, bool>> predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            int? pageNumber = null,
+            int? pageSize = null)
+        {
+            IQueryable<T> query = _dbSet.Where(predicate);
+
+            // Apply sorting if provided
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Apply pagination if requested
+            if (pageNumber.HasValue && pageSize.HasValue)
+            {
+                int skip = (pageNumber.Value - 1) * pageSize.Value;
+                query = query.Skip(skip).Take(pageSize.Value);
+            }
+
+            return await query.ToListAsync();
+        }
+
     }
 }

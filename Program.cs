@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
@@ -32,9 +33,9 @@ namespace BreastCancer
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                     options.JsonSerializerOptions.Converters.Add(
-                        new System.Text.Json.Serialization.JsonStringEnumConverter()
-                    );
+                    options.JsonSerializerOptions.Converters.Add(
+                       new System.Text.Json.Serialization.JsonStringEnumConverter()
+                   );
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -80,8 +81,9 @@ namespace BreastCancer
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
-            builder.Services.AddScoped<IAuthTokenService,AuthTokenService>();
+            builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
             builder.Services.AddScoped<IPatientService, PatientService>();
+            builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();
@@ -94,7 +96,8 @@ namespace BreastCancer
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options => {
+            }).AddJwtBearer(options =>
+            {
 
                 var jwtOptions = builder.Configuration.GetSection(JwtOptions.JwtOptionsKey)
                     .Get<JwtOptions>() ?? throw new ArgumentException(nameof(JwtOptions));
@@ -142,9 +145,12 @@ namespace BreastCancer
                                 Id = "Bearer"
                             }
                         },
-                        new string[] {}
+                        Array.Empty<string>()
                     }
                 });
+
+                // Enable annotations to show SwaggerResponse and SwaggerOperation descriptions
+                c.EnableAnnotations();
             });
             #endregion
 
@@ -152,8 +158,15 @@ namespace BreastCancer
 
             var app = builder.Build();
 
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<BreastCancerDB>();
+                await dbContext.Database.MigrateAsync();
+            }
+
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
@@ -167,7 +180,7 @@ namespace BreastCancer
 
             app.MapControllers();
 
-            app.Run();
+            await app.RunAsync();
         }
     }
 }

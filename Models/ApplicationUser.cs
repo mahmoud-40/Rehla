@@ -25,7 +25,8 @@ namespace BreastCancer.Models
         public string? ImageUrl { get; set; }
 
         [DataType(DataType.Date)]
-        public DateTime? DateOfBirth { get; set; }
+        [AllowNull]
+        public DateTime? DateOfBirth { get; set; } = null;
 
         [NotMapped]
         public int? Age => DateOfBirth.HasValue ? CalculateAge() : null;

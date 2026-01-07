@@ -17,6 +17,12 @@ namespace BreastCancer.Context
         public virtual DbSet<Caregiver> Caregivers { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+        public virtual DbSet<TreatmentPlan> TreatmentPlans { get; set; }
+        public virtual DbSet<Medicine> Medicines { get; set; }
+        public virtual DbSet<TreatmentPlanHistory> TreatmentPlanHistories { get; set; }
+        public virtual DbSet<TreatmentPlanMedia> TreatmentPlanMedias { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -69,6 +75,11 @@ namespace BreastCancer.Context
                 .HasIndex(d => d.LicenseNumber)
                 .IsUnique()
                 .HasFilter("[LicenseNumber] IS NOT NULL");
+
+
+            modelBuilder.Entity<ApplicationUser>()
+                .Property(u => u.DateOfBirth)
+                .IsRequired(false);
 
             modelBuilder.Entity<ApplicationRole>().HasData(
                 new ApplicationRole { Id = "1", Name = "Admin", NormalizedName = "ADMIN" },

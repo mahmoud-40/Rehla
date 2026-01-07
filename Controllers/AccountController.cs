@@ -7,9 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Numerics;
-using System.Security.Cryptography;
-using System.Text;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace BreastCancer.Controllers
 {
@@ -23,8 +21,18 @@ namespace BreastCancer.Controllers
             this.accountService = accountService;
         }
 
-        // ====================== REGISTER ======================
+        /// <summary>
+        /// Register a new doctor account
+        /// </summary>
+        /// <param name="doctor">Doctor registration data</param>
+        /// <returns>Success message</returns>
+        /// <remarks>
+        /// Creates a new doctor account in the system. Requires valid registration data including personal information and professional details.
+        /// </remarks>
         [HttpPost("Register/Doctor")]
+        [SwaggerOperation(Summary = "Register a new doctor account")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Doctor registered successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
         public async Task<IActionResult> RegisterDoctor(DoctorRegisterDTO doctor)
         {
             if (!ModelState.IsValid)
@@ -42,7 +50,19 @@ namespace BreastCancer.Controllers
 
             return BadRequest(ModelState);
         }
+
+        /// <summary>
+        /// Register a new patient account
+        /// </summary>
+        /// <param name="patient">Patient registration data</param>
+        /// <returns>Success message</returns>
+        /// <remarks>
+        /// Creates a new patient account in the system. Requires valid registration data including personal information and optional medical history.
+        /// </remarks>
         [HttpPost("Register/Patient")]
+        [SwaggerOperation(Summary = "Register a new patient account")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Patient registered successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
         public async Task<IActionResult> RegisterPatient(PatientRegisterDTO patient)
         {
             if (!ModelState.IsValid)
@@ -61,7 +81,19 @@ namespace BreastCancer.Controllers
 
             return BadRequest(ModelState);
         }
+
+        /// <summary>
+        /// Register a new caregiver account
+        /// </summary>
+        /// <param name="caregiver">Caregiver registration data</param>
+        /// <returns>Success message</returns>
+        /// <remarks>
+        /// Creates a new caregiver account linked to a specific patient. Requires valid registration data and patient ID.
+        /// </remarks>
         [HttpPost("Register/Caregiver")]
+        [SwaggerOperation(Summary = "Register a new caregiver account")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Caregiver registered successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid registration data or validation errors")]
         public async Task<IActionResult> RegisterCaregiver(CaregiverRegisterDTO caregiver)
         {
             if (!ModelState.IsValid)
@@ -81,40 +113,20 @@ namespace BreastCancer.Controllers
             return BadRequest(ModelState);
         }
 
-        // ====================== AUTH ======================
-        [HttpPost("ConfirmEmail")]
-        public async Task<IActionResult> ConfirmEmailAsync(ConfirmEmailDTO confirmEmail)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await accountService.ConfirmEmailAsync(confirmEmail);
-
-            if (result.IsSuccess)
-                return Ok(new { message = "Email confirmed successfully. You can now log in." });
-
-            ModelState.AddModelError("", result.Errors.First());
-            return BadRequest(ModelState);
-
-        }
-        [HttpPost("ResendConfirmation")]
-        public async Task<IActionResult> ResendConfirmationAsync(string Email)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await accountService.ResendConfirmationCodeAsync(Email);
-
-            if (result.IsSuccess)
-                return Ok(new { message = "Confirmation email has been sent. Please check your inbox." });
-
-            ModelState.AddModelError("", result.Errors.First());
-            return BadRequest(ModelState);
-
-        }
-
+        /// <summary>
+        /// Authenticate user and receive JWT tokens
+        /// </summary>
+        /// <param name="userFromRequest">Login credentials (email and password)</param>
+        /// <returns>JWT access token, refresh token, and expiration time</returns>
+        /// <remarks>
+        /// Authenticates a user with their email and password. Returns JWT tokens for authorized API access.
+        /// Use the access token in the Authorization header: "Bearer {accessToken}"
+        /// </remarks>
         [HttpPost("Login")]
-        public async Task<IActionResult> LoginAsync(LoginDTO userFromRequest)
+        [SwaggerOperation(Summary = "Authenticate user and receive JWT tokens")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Authentication successful, returns access token and refresh token")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid credentials or validation errors")]
+        public async Task<IActionResult> Login(LoginDTO userFromRequest)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -132,8 +144,20 @@ namespace BreastCancer.Controllers
             });
         }
 
+        /// <summary>
+        /// Logout and invalidate refresh token
+        /// </summary>
+        /// <param name="logoutDTO">Refresh token to invalidate</param>
+        /// <returns>Success message</returns>
+        /// <remarks>
+        /// Logs out the current user by invalidating the provided refresh token. Requires authentication.
+        /// </remarks>
         [HttpPost("Logout")]
         [Authorize]
+        [SwaggerOperation(Summary = "Logout and invalidate refresh token")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Logged out successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid refresh token")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         public async Task<IActionResult> LogoutAsync(LogoutDTO logoutDTO)
         {
             if (!ModelState.IsValid)
@@ -147,8 +171,21 @@ namespace BreastCancer.Controllers
             return Ok(new { message = "Logged out successfully" });
         }
 
+        /// <summary>
+        /// Refresh access token using refresh token
+        /// </summary>
+        /// <param name="refreshToken">Refresh token DTO containing the refresh token</param>
+        /// <returns>New JWT access token, refresh token, and expiration time</returns>
+        /// <remarks>
+        /// Generates a new access token and refresh token pair using a valid refresh token.
+        /// Use this endpoint when the access token expires.
+        /// </remarks>
         [HttpPost("RefreshToken")]
-        public async Task<IActionResult> RefreshTokenAsync(RefreshTokenDTO refreshToken)
+        [SwaggerOperation(Summary = "Refresh access token using refresh token")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Token refresh successful, returns new access token and refresh token")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request data")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Invalid or expired refresh token")]
+        public async Task<IActionResult> RefreshToken([FromBody]RefreshTokenDTO refreshToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
