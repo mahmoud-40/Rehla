@@ -26,7 +26,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Patient, Admin")]
+        [Authorize(Roles = "Patient, Admin, Doctor")]
         [SwaggerOperation(Summary = "Create a new treatment plan")]
         [SwaggerResponse(StatusCodes.Status201Created, "Treatment plan created successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid treatment plan data or validation errors")]
@@ -67,7 +67,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Patient, Admin")]
+        [Authorize(Roles = "Patient, Admin, Doctor")]
         [SwaggerOperation(Summary = "Update an existing treatment plan")]
         [SwaggerResponse(StatusCodes.Status200OK, "Treatment plan updated successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid treatment plan data or validation errors")]
@@ -115,7 +115,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPost("medicines/{medicineId}/mark-taken")]
-        [Authorize(Roles = "Patient, Admin")]
+        [Authorize(Roles = "Patient")]
         [SwaggerOperation(Summary = "Mark a medicine as taken")]
         [SwaggerResponse(StatusCodes.Status200OK, "Medicine marked as taken successfully with updated NextAlert")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid operation (e.g., medicine has ended)")]

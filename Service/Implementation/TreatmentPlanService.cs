@@ -53,8 +53,7 @@ namespace BreastCancer.Service.Implementation
                 }
                 await _unitOfWork.TreatmentPlansRepository.AddAsync(treatmentPlan);
                 await _unitOfWork.SaveAsync();
-                var createdPlan = await _unitOfWork.TreatmentPlansRepository.GetByIdAsync(treatmentPlan.Id);
-                return _mapper.Map<TreatmentPlanResponseDTO>(createdPlan ?? treatmentPlan);
+                return _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
             }
             catch (Exception ex)
             {
@@ -146,8 +145,7 @@ namespace BreastCancer.Service.Implementation
 
                 _unitOfWork.TreatmentPlansRepository.Update(existingPlan);
                 await _unitOfWork.SaveAsync();
-                var updatedPlan = await _unitOfWork.TreatmentPlansRepository.GetByIdAsync(id);
-                return _mapper.Map<TreatmentPlanResponseDTO>(updatedPlan ?? existingPlan);
+                return _mapper.Map<TreatmentPlanResponseDTO>(existingPlan);
             }
             catch (Exception ex)
             {
@@ -177,16 +175,14 @@ namespace BreastCancer.Service.Implementation
                 var currentTime = DateTime.UtcNow;
                 medicine.LastTaken = currentTime;
 
-                // Dynamically recalculate NextAlert = LastTaken + IntervalHours
+                
                 RecalculateNextAlert(medicine);
 
                 medicine.UpdatedAt = currentTime;
                 // TODO: Set UpdatedBy from authenticated user context
 
-                // Save changes - EF Core change tracking will detect Medicine updates automatically
                 await _unitOfWork.SaveAsync();
 
-                // Return updated medicine
                 return _mapper.Map<MedicineResponseDTO>(medicine);
             }
             catch (Exception ex)
@@ -203,7 +199,7 @@ namespace BreastCancer.Service.Implementation
         {
             if (!medicine.LastTaken.HasValue)
             {
-                return; // Cannot recalculate without LastTaken
+                return;
             }
 
             var lastTakenTime = medicine.LastTaken.Value;
@@ -213,16 +209,7 @@ namespace BreastCancer.Service.Implementation
                 medicine.NextAlert = null;
                 return;
             }
-
-            var nextAlertTime = lastTakenTime.AddHours(medicine.IntervalHours);
-            if (medicine.EndTime.HasValue && nextAlertTime > medicine.EndTime.Value)
-            {
-                medicine.NextAlert = null;
-            }
-            else
-            {
-                medicine.NextAlert = nextAlertTime;
-            }
+            medicine.NextAlert = lastTakenTime.AddHours(medicine.IntervalHours);
         }
     }
 }
