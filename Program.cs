@@ -78,12 +78,14 @@ namespace BreastCancer
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
+            builder.Services.AddScoped<ITreatmentPlanRepository, TreatmentPlanRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IDoctorService, DoctorService>();
+            builder.Services.AddScoped<ITreatmentPlanService, TreatmentPlanService>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();

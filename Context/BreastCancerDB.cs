@@ -87,6 +87,31 @@ namespace BreastCancer.Context
                 new ApplicationRole { Id = "3", Name = "Doctor", NormalizedName = "DOCTOR" },
                 new ApplicationRole { Id = "4", Name = "Caregiver", NormalizedName = "CAREGIVER" }
             );
+
+            // TreatmentPlan relationships
+            modelBuilder.Entity<TreatmentPlan>()
+                .HasOne(tp => tp.Patient)
+                .WithMany()
+                .HasForeignKey(tp => tp.PatientId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TreatmentPlan>()
+                .HasOne(tp => tp.Doctor)
+                .WithMany()
+                .HasForeignKey(tp => tp.DoctorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TreatmentPlan>()
+                .HasMany(tp => tp.Medicines)
+                .WithOne(m => m.TreatmentPlan)
+                .HasForeignKey(m => m.TreatmentPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Medicine>()
+                .HasOne(m => m.TreatmentPlan)
+                .WithMany(tp => tp.Medicines)
+                .HasForeignKey(m => m.TreatmentPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
     }

@@ -5,7 +5,7 @@
         IDoctorRepository DoctorsRepository { get; }
         IPatientRepository PatientsRepository { get; }
         ICaregiverRepository CaregiversRepository { get; }
-
+        ITreatmentPlanRepository TreatmentPlansRepository { get; }
         IRefreshTokenRepository RefreshTokenRepository { get; }
         
 

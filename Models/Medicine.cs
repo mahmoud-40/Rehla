@@ -19,9 +19,14 @@ namespace BreastCancer.Models
         [Required]
         public DateTime StartTime { get; set; }
         
+        [Required]
+        public int IntervalHours { get; set; } // Hours between doses
+        
         public DateTime? EndTime { get; set; }
         
         public DateTime? LastTaken { get; set; }
+        
+        public DateTime? NextAlert { get; set; } // Calculated next alert time
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? CreatedBy { get; set; }
