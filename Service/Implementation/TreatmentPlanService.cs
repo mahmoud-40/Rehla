@@ -25,6 +25,58 @@ namespace BreastCancer.Service.Implementation
             _logger = logger;
         }
 
+        public async Task<TreatmentPlanResponseDTO> GetTreatmentPlanByIdAsync(int id)
+        {
+            try
+            {
+                var treatmentPlan = await _unitOfWork.TreatmentPlansRepository.GetByIdAsync(id) ?? throw new InvalidOperationException($"Treatment plan with ID '{id}' not found.");
+
+                var treatmentPlanDto = _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
+
+                return treatmentPlanDto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting treatment plan: {id}", id);
+                throw;
+            }
+        }
+
+        public async Task<TreatmentPlanResponseDTO> GetTreatmentPlanByPatientIdAsync(string patientId)
+        {
+            try
+            {
+                var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(patientId);
+                if (patient == null)
+                {
+                    throw new InvalidOperationException($"Patient with ID '{patientId}' not found.");
+                }
+
+                if (!patient.TreatmentPlanId.HasValue)
+                {
+                    throw new InvalidOperationException($"Patient '{patientId}' does not have a treatment plan assigned.");
+                }
+
+                var treatmentPlan = await _unitOfWork.TreatmentPlansRepository
+                    .GetByIdAsync(patient.TreatmentPlanId.Value);
+
+                if (treatmentPlan == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Treatment plan with ID '{patient.TreatmentPlanId}' not found, but patient has it assigned.");
+                }
+
+                var treatmentPlanDto = _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
+
+                return treatmentPlanDto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting treatment plan for patient: {PatientId}", patientId);
+                throw;
+            }
+        }
+
         public async Task<TreatmentPlanResponseDTO> CreateTreatmentPlanAsync(string patientId, TreatmentPlanCreateDTO treatmentPlanDto)
         {
             try
@@ -51,7 +103,14 @@ namespace BreastCancer.Service.Implementation
                     medicine.NextAlert = medicine.StartTime;
                     medicine.CreatedAt = DateTime.UtcNow;
                 }
+
+                // TODO: fix performance issue
                 await _unitOfWork.TreatmentPlansRepository.AddAsync(treatmentPlan);
+                await _unitOfWork.SaveAsync();
+
+                patient.TreatmentPlanId = treatmentPlan.Id;
+                _unitOfWork.PatientsRepository.Update(patient);
+
                 await _unitOfWork.SaveAsync();
                 return _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
             }
@@ -84,7 +143,7 @@ namespace BreastCancer.Service.Implementation
                     }
                 }
                 _mapper.Map(treatmentPlanDto, existingPlan);
-                
+
                 existingPlan.UpdatedAt = DateTime.UtcNow;
                 // TODO: Set UpdatedBy from authenticated user context
                 if (treatmentPlanDto.Medicines != null)
@@ -101,18 +160,18 @@ namespace BreastCancer.Service.Implementation
                             {
                                 var previousLastTaken = existingMedicine.LastTaken;
                                 var previousIntervalHours = existingMedicine.IntervalHours;
-                                
-                                
+
+
                                 _mapper.Map(medicineDto, existingMedicine);
 
                                 var lastTakenWasUpdated = medicineDto.LastTaken.HasValue && medicineDto.LastTaken != previousLastTaken;
                                 var intervalWasUpdated = medicineDto.IntervalHours.HasValue && medicineDto.IntervalHours.Value != previousIntervalHours;
-                                
+
                                 if (lastTakenWasUpdated || intervalWasUpdated)
                                 {
                                     RecalculateNextAlert(existingMedicine);
                                 }
-                                
+
                                 existingMedicine.UpdatedAt = DateTime.UtcNow;
                                 // TODO: Set UpdatedBy from authenticated user context
                             }
@@ -175,7 +234,7 @@ namespace BreastCancer.Service.Implementation
                 var currentTime = DateTime.UtcNow;
                 medicine.LastTaken = currentTime;
 
-                
+
                 RecalculateNextAlert(medicine);
 
                 medicine.UpdatedAt = currentTime;

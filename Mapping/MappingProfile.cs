@@ -15,6 +15,7 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.MedicalHistory, opt => opt.Ignore())
                 .ForMember(dest => dest.DoctorId, opt => opt.Ignore())
+                .ForMember(dest => dest.TreatmentPlanId, opt => opt.Ignore())
                 .ForMember(dest => dest.DoctorName, opt => opt.Ignore())
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email ?? string.Empty));
 
@@ -43,7 +44,7 @@ namespace BreastCancer.Mapping
 
 
             CreateMap<BaseRegisterDTO, ApplicationUser>()
-                .ForMember(dest => dest.UserName , opt => opt.MapFrom(src => src.Username));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Username));
 
             CreateMap<DoctorRegisterDTO, ApplicationUser>()
                 .IncludeBase<BaseRegisterDTO, ApplicationUser>();
@@ -65,7 +66,7 @@ namespace BreastCancer.Mapping
             var updateUserMap = CreateMap<DoctorUpdateDTO, ApplicationUser>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom((src, dest) => !string.IsNullOrEmpty(src.Email) ? src.Email : dest.UserName))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-            
+
             updateUserMap.ForAllMembers(opt => opt.Condition((src, dest, srcMember, destMember) =>
             {
                 if (srcMember == null) return false;
@@ -81,7 +82,7 @@ namespace BreastCancer.Mapping
             // Map DoctorUpdateDTO to Doctor (for updates - only maps non-null properties)
             var updateDoctorMap = CreateMap<DoctorUpdateDTO, Doctor>()
                 .ForMember(dest => dest.UserId, opt => opt.Ignore());
-            
+
             updateDoctorMap.ForAllMembers(opt => opt.Condition((src, dest, srcMember, destMember) =>
             {
                 if (srcMember == null) return false;
@@ -153,9 +154,9 @@ namespace BreastCancer.Mapping
 
             // Map TreatmentPlan to TreatmentPlanResponseDTO
             CreateMap<TreatmentPlan, TreatmentPlanResponseDTO>()
-                .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => 
+                .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src =>
                     !string.IsNullOrEmpty(src.DoctorId) && src.Doctor != null && src.Doctor.User != null
-                        ? src.Doctor.User.FullName 
+                        ? src.Doctor.User.FullName
                         : src.DoctorName));
 
             // Map Medicine to MedicineResponseDTO

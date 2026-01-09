@@ -30,7 +30,7 @@ namespace BreastCancer.Service.Implementation
         private readonly IOptions<JwtOptions> jwtOptions;
         private readonly IAuthTokenService _authToken;
         private readonly IMapper _mapper;
-        private readonly IEmailService _emailService; 
+        private readonly IEmailService _emailService;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -51,7 +51,7 @@ namespace BreastCancer.Service.Implementation
             this._jwtOptions = jwtOptions.Value;
             this._emailService = emailService;
         }
-        
+
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest)
         {
 
@@ -125,13 +125,13 @@ namespace BreastCancer.Service.Implementation
             return (true, null);
 
         }
-        
-        private async Task<(string Id,bool IsSuccess, IEnumerable<string> Errors)>  CreateUserAsync(BaseRegisterDTO model)
+
+        private async Task<(string Id, bool IsSuccess, IEnumerable<string> Errors)> CreateUserAsync(BaseRegisterDTO model)
         {
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
 
             if (existingUser != null)
-                return (null!,false, new[] { "An account with this email already exists." });
+                return (null!, false, new[] { "An account with this email already exists." });
 
 
             // ToDo: AutoMapper
@@ -161,14 +161,14 @@ namespace BreastCancer.Service.Implementation
 
             var body = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
             await _emailService.SendEmailAsync(user.Email!, "Confirm Your Email Address", body);
-            
-            
+
+
 
             // Assign Role
             var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
 
             if (!roleResult.Succeeded)
-                return (null!,false, roleResult.Errors.Select(e => e.Description)!);
+                return (null!, false, roleResult.Errors.Select(e => e.Description)!);
 
             return (user.Id!, true, null!);
         }
@@ -180,7 +180,7 @@ namespace BreastCancer.Service.Implementation
             if (user == null)
                 return new TokenResponseDTO
                 {
-                    IsSuccess =false,
+                    IsSuccess = false,
                     Errors = new[] { "Invalid email or password." }
                 };
 
@@ -196,7 +196,7 @@ namespace BreastCancer.Service.Implementation
 
             bool IsValid = await _userManager.CheckPasswordAsync(user, loginDTO.Password);
 
-            if (!IsValid) 
+            if (!IsValid)
                 return new TokenResponseDTO
                 {
                     IsSuccess = false,
@@ -230,14 +230,14 @@ namespace BreastCancer.Service.Implementation
 
                 refreshToken = newRefreshToken.Token;
             }
-            
+
 
             return new TokenResponseDTO
             {
-               IsSuccess = true,
-               RefreshToken= refreshToken,
-               AccessToken = AccessToken.Token,
-               ExpiresTime = AccessToken.expiresAtUtc
+                IsSuccess = true,
+                RefreshToken = refreshToken,
+                AccessToken = AccessToken.Token,
+                ExpiresTime = AccessToken.expiresAtUtc
             };
 
         }
@@ -246,12 +246,12 @@ namespace BreastCancer.Service.Implementation
         {
             var user = await _userManager.FindByEmailAsync(Confirm.Email);
             if (user == null)
-                return (false,new[] { "Invalid user" });
+                return (false, new[] { "Invalid user" });
 
             if (user.EmailConfirmed)
                 return (false, new[] { "This email has already been confirmed." });
-          
-            if(user.EmailConfirmationCodeExpireAt < DateTime.UtcNow.ToLocalTime())
+
+            if (user.EmailConfirmationCodeExpireAt < DateTime.UtcNow.ToLocalTime())
                 return (false, new[] { "The confirmation code has expired." });
 
             if (user.EmailConfirmationCode != Confirm.Code)
@@ -259,7 +259,7 @@ namespace BreastCancer.Service.Implementation
 
             var result = await _userManager.ConfirmEmailAsync(user, Confirm.Code);
 
-            if(!result.Succeeded)
+            if (!result.Succeeded)
                 return (false, new[] { "Invalid confirmation code." });
 
             user.EmailConfirmationCodeExpireAt = null;
@@ -275,9 +275,9 @@ namespace BreastCancer.Service.Implementation
             var user = await _userManager.FindByEmailAsync(Email);
 
             if (user == null)
-                return (false,new[] { "Invaild user" });
+                return (false, new[] { "Invaild user" });
 
-            if(user.EmailConfirmed)
+            if (user.EmailConfirmed)
                 return (false, new[] { "This email has already been confirmed." });
 
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
