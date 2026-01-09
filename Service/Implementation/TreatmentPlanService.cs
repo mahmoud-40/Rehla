@@ -31,12 +31,6 @@ namespace BreastCancer.Service.Implementation
             {
                 var treatmentPlan = await _unitOfWork.TreatmentPlansRepository.GetByIdAsync(id) ?? throw new InvalidOperationException($"Treatment plan with ID '{id}' not found.");
 
-
-                if (treatmentPlan == null)
-                {
-                    return new TreatmentPlanResponseDTO();
-                }
-
                 var treatmentPlanDto = _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
 
                 return treatmentPlanDto;
