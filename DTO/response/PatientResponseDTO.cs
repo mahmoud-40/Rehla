@@ -18,6 +18,8 @@ namespace BreastCancer.DTO.response
         public bool IsActive { get; set; }
         public string? MedicalHistory { get; set; }
         public string? DoctorId { get; set; }
+
+        public int? TreatmentPlanId { get; set; }
         public string? DoctorName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

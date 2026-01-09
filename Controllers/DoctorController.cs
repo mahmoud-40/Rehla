@@ -10,7 +10,7 @@ namespace BreastCancer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Doctor")]
+    // [Authorize(Roles = "Doctor")]
     public class DoctorController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -32,7 +32,7 @@ namespace BreastCancer.Controllers
         /// Requires Admin role. Returns a paginated list of all doctors in the system.
         /// </remarks>
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        // [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Get all doctors with pagination")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the list of doctors")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid pagination parameters or error occurred")]
@@ -67,7 +67,7 @@ namespace BreastCancer.Controllers
         /// The ID parameter refers to the UserId which is the primary key of the Doctor entity.
         /// </remarks>
         [HttpGet("{id}")]
-        [Authorize(Roles = "Doctor, Admin, Patient, Caregiver")]
+        // [Authorize(Roles = "Doctor, Admin, Patient, Caregiver")]
         [SwaggerOperation(Summary = "Get a doctor by UserId")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the doctor details")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]
@@ -109,7 +109,7 @@ namespace BreastCancer.Controllers
         /// The returned ID is the UserId which serves as the Doctor's primary key.
         /// </remarks>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        // [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Create a new doctor")]
         [SwaggerResponse(StatusCodes.Status201Created, "Doctor created successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid doctor data or validation errors")]
@@ -158,7 +158,7 @@ namespace BreastCancer.Controllers
         /// The ID parameter refers to the UserId which is the primary key of the Doctor entity.
         /// </remarks>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, Doctor")]
+        // [Authorize(Roles = "Admin, Doctor")]
         [SwaggerOperation(Summary = "Update an existing doctor")]
         [SwaggerResponse(StatusCodes.Status200OK, "Doctor updated successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid doctor data or validation errors")]
@@ -210,7 +210,7 @@ namespace BreastCancer.Controllers
         /// The ID parameter refers to the UserId which is the primary key of the Doctor entity.
         /// </remarks>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, Doctor")]
+        // [Authorize(Roles = "Admin, Doctor")]
         [SwaggerOperation(Summary = "Delete a doctor (soft delete - sets IsActive to false)")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Doctor deleted successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]
@@ -251,7 +251,7 @@ namespace BreastCancer.Controllers
         /// This operation cannot be undone. The ID parameter refers to the UserId which is the primary key of the Doctor entity.
         /// </remarks>
         [HttpDelete("{id}/HardDelete")]
-        [Authorize(Roles = "Admin")]
+        // [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Hard delete a doctor (permanently remove from database)")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Doctor permanently deleted successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request parameters or error occurred")]

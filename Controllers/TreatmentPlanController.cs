@@ -11,7 +11,7 @@ namespace BreastCancer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    // [Authorize]
     public class TreatmentPlanController : ControllerBase
     {
         private readonly ITreatmentPlanService _treatmentPlanService;
@@ -25,8 +25,76 @@ namespace BreastCancer.Controllers
             _logger = logger;
         }
 
+        [HttpGet("{id}")]
+        // [Authorize(Roles = "Patient, Admin, Doctor")]
+        [SwaggerOperation(Summary = "Get a treatment plan by ID")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the treatment plan details")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid ID format")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Treatment plan not found")]
+        public async Task<IActionResult> GetTreatmentPlanById(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest(new { message = "Treatment plan ID must be a positive number." });
+                }
+
+                var treatmentPlan = await _treatmentPlanService.GetTreatmentPlanByIdAsync(id);
+
+                if (treatmentPlan == null || treatmentPlan.Id == 0)
+                {
+                    return NotFound(new { message = $"Treatment plan with ID '{id}' not found." });
+                }
+
+                return Ok(treatmentPlan);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Treatment plan not found: {TreatmentPlanId}", id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting treatment plan by ID: {TreatmentPlanId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred while retrieving the treatment plan." });
+            }
+        }
+
+        [HttpGet("patient/{patientId}")]
+        // [Authorize(Roles = "Patient, Admin, Doctor")]
+        [SwaggerOperation(Summary = "Get treatment plan for a specific patient")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the treatment plan for the patient")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid patient ID")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found or has no treatment plan")]
+        public async Task<IActionResult> GetTreatmentPlanByPatientId(string patientId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(patientId))
+                {
+                    return BadRequest(new { message = "Patient ID is required." });
+                }
+
+                var treatmentPlan = await _treatmentPlanService.GetTreatmentPlanByPatientIdAsync(patientId);
+
+                return Ok(treatmentPlan);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Treatment plan not found for patient: {PatientId}", patientId);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting treatment plan for patient: {PatientId}", patientId);
+                return BadRequest(new { message = "An error occurred while getting the treatment plan." });
+            }
+        }
+
         [HttpPost]
-        [Authorize(Roles = "Patient, Admin, Doctor")]
+        // [Authorize(Roles = "Patient, Admin, Doctor")]
         [SwaggerOperation(Summary = "Create a new treatment plan")]
         [SwaggerResponse(StatusCodes.Status201Created, "Treatment plan created successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid treatment plan data or validation errors")]
@@ -67,7 +135,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Patient, Admin, Doctor")]
+        // [Authorize(Roles = "Patient, Admin, Doctor")]
         [SwaggerOperation(Summary = "Update an existing treatment plan")]
         [SwaggerResponse(StatusCodes.Status200OK, "Treatment plan updated successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid treatment plan data or validation errors")]
@@ -115,7 +183,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPost("medicines/{medicineId}/mark-taken")]
-        [Authorize(Roles = "Patient")]
+        // [Authorize(Roles = "Patient")]
         [SwaggerOperation(Summary = "Mark a medicine as taken")]
         [SwaggerResponse(StatusCodes.Status200OK, "Medicine marked as taken successfully with updated NextAlert")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid operation (e.g., medicine has ended)")]
