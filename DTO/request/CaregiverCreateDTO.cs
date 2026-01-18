@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using BreastCancer.Enum;
 
 namespace BreastCancer.DTO.request
 {
@@ -13,7 +14,7 @@ namespace BreastCancer.DTO.request
         public string Email { get; set; }
         [Required]
         public string PatientId { get; set; }
-        public string? RelationshipType { get; set; }
+        public RelationshipType? RelationshipType { get; set; }
         public string FullName => $"{FirstName} {LastName}";
     }
 }
