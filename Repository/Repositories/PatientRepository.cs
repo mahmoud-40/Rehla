@@ -18,6 +18,16 @@ namespace BreastCancer.Repository.Repositories
             return await _dbSet.FirstOrDefaultAsync(p => p.UserId == id);
         }
 
+        public async Task<Patient?> GetPatientWithTreatmentPlanAsync(string patientId)
+        {
+            var patient = await _dbSet
+                .Include(p => p.TreatmentPlan)
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.UserId == patientId);
+
+            return patient;
+        }
+
         public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
         {
             // Rely on EF Core lazy loading proxies for navigation properties (User, Doctor, Caregivers)
@@ -27,7 +37,7 @@ namespace BreastCancer.Repository.Repositories
                 .Take(pageSize)
                 .ToListAsync();
         }
-        
+
         //public async Task<IEnumerable<Patient>> GetAllWithDoctorAndCaregiverAsync()
         //{
         //    return await _dbSet.Include(p => p.Doctor).Include(p => p.Caregivers).ToListAsync();
