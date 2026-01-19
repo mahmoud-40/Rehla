@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using BreastCancer.Enum;
 
 namespace BreastCancer.Models
 {
@@ -7,8 +8,7 @@ namespace BreastCancer.Models
     {
         [Key]
         public string UserId { get; set; }
-        [MaxLength(50)]
-        public string? RelationshipType { get; set; }
+        public RelationshipType? RelationshipType { get; set; }
         [Required]
         public string PatientId { get; set; }
         public virtual Patient Patient { get; set; }
