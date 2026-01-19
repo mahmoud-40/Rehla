@@ -51,13 +51,6 @@ namespace BreastCancer.Context
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Patient>()
-                .HasOne(p => p.TreatmentPlan)
-                .WithOne(tp => tp.Patient)
-                .HasForeignKey<Patient>(p => p.TreatmentPlanId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.NoAction);
-
             modelBuilder.Entity<Caregiver>()
                 .HasOne(c => c.Patient)
                 .WithMany(p => p.Caregivers)

@@ -52,7 +52,7 @@ namespace BreastCancer.Service.Implementation
                     throw new InvalidOperationException($"Patient with ID '{patientId}' not found.");
                 }
 
-                if (!patient.TreatmentPlanId.HasValue)
+                if (patient.TreatmentPlan == null)
                 {
                     throw new InvalidOperationException($"Patient '{patientId}' does not have a treatment plan assigned.");
                 }
@@ -99,7 +99,7 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.TreatmentPlansRepository.AddAsync(treatmentPlan);
                 await _unitOfWork.SaveAsync();
 
-                patient.TreatmentPlanId = treatmentPlan.Id;
+                patient.TreatmentPlan = treatmentPlan;
                 _unitOfWork.PatientsRepository.Update(patient);
 
                 await _unitOfWork.SaveAsync();
