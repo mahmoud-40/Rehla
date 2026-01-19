@@ -1,4 +1,6 @@
-﻿namespace BreastCancer.DTO.response
+﻿using BreastCancer.Enum;
+
+namespace BreastCancer.DTO.response
 {
     public class CaregiverResponse
     {
@@ -6,6 +8,6 @@
         public string Name { get; set; }
         public string Email { get; set; }
         public string PatientId { get; set; }
-        public string? RelationshipType { get; set; }
+        public RelationshipType? RelationshipType { get; set; }
     }
 }
