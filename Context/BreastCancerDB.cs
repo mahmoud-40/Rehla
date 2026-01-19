@@ -57,6 +57,11 @@ namespace BreastCancer.Context
                 .HasForeignKey(c => c.PatientId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<Caregiver>()
+                .Property(c => c.RelationshipType)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
             modelBuilder.Entity<Patient>()
                 .HasKey(p => p.UserId);
 
