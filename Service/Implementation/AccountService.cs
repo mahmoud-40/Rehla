@@ -10,6 +10,7 @@ using BreastCancer.Templates;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
@@ -61,14 +62,15 @@ namespace BreastCancer.Service.Implementation
             {
                 return (false, userResult.Errors);
             }
-
+            
 
             var doctor = new Doctor
             {
                 UserId = userResult.Id,
                 LicenseNumber = DoctorFromRequest.LicenseNumber,
                 Specialization = DoctorFromRequest.Specialization,
-                YearsOfExperience = DoctorFromRequest.YearsOfExperience
+                YearsOfExperience = DoctorFromRequest.YearsOfExperience,
+                NationalIdImage = DoctorFromRequest.NationalIdImagePath
             };
 
             _unitOfWork.DoctorsRepository.Add(doctor);
@@ -85,13 +87,16 @@ namespace BreastCancer.Service.Implementation
             {
                 return (false, userResult.Errors);
             }
+            var Patient = await _unitOfWork.PatientsRepository.GetByEmailAsync(CaregiverFromRequest.PatientEmail);
 
+            if (Patient == null)
+                return (false, new[] { "Invalid Email Patient" });
 
             var caregiver = new Caregiver
             {
                 UserId = userResult.Id,
                 RelationshipType = CaregiverFromRequest.RelationshipType,
-                PatientId = CaregiverFromRequest.PatientId
+                PatientId = Patient.UserId
 
             };
 
@@ -442,5 +447,7 @@ namespace BreastCancer.Service.Implementation
 
             return result.ToString();
         }
+    
+        
     }
 }

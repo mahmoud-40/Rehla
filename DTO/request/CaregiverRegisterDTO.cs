@@ -7,7 +7,8 @@ namespace BreastCancer.DTO.request
     {
         public RelationshipType? RelationshipType { get; set; }
         [Required]
-        public string PatientId { get; set; }
+        [EmailAddress]
+        public string PatientEmail { get; set; }
         public override string Role => "Caregiver";
 
     }

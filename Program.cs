@@ -90,7 +90,17 @@ namespace BreastCancer
             {
                 cfg.AddProfile<MappingProfile>();
             });
-
+            // Add CORS policy
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()    // or set specific frontend URL like "http://localhost:3000"
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+            });
 
             #region JWT Configuration
             builder.Services.AddAuthentication(options =>
@@ -153,6 +163,7 @@ namespace BreastCancer
 
                 // Enable annotations to show SwaggerResponse and SwaggerOperation descriptions
                 c.EnableAnnotations();
+                c.CustomSchemaIds(type => type.ToString());
             });
             #endregion
 
@@ -173,9 +184,9 @@ namespace BreastCancer
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+            app.UseCors("AllowAll");
             app.UseHttpsRedirection();
-
+            app.UseStaticFiles();
             // app.UseAuthentication();
             // app.UseAuthorization();
 

@@ -17,6 +17,8 @@ namespace BreastCancer.Models
 
         [Range(0, 60)]
         public int? YearsOfExperience { get; set; }
+        [Required]
+        public string? NationalIdImage { get; set; }
 
         public bool IsVerified { get; set; } = false;
 

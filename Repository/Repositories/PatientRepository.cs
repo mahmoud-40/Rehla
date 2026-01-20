@@ -17,6 +17,10 @@ namespace BreastCancer.Repository.Repositories
             // Rely on EF Core lazy loading proxies to load navigation properties (User, Doctor, Caregivers)
             return await _dbSet.FirstOrDefaultAsync(p => p.UserId == id);
         }
+        public async Task<Patient?> GetByEmailAsync(string Email)
+        {
+            return await _dbSet.FirstOrDefaultAsync(e => e.User.Email == Email);
+        }
 
         public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
         {
