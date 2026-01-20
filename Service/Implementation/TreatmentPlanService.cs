@@ -46,27 +46,18 @@ namespace BreastCancer.Service.Implementation
         {
             try
             {
-                var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(patientId);
+                var patient = await _unitOfWork.PatientsRepository.GetPatientWithTreatmentPlanAsync(patientId);
                 if (patient == null)
                 {
                     throw new InvalidOperationException($"Patient with ID '{patientId}' not found.");
                 }
 
-                if (!patient.TreatmentPlanId.HasValue)
+                if (patient.TreatmentPlan == null)
                 {
                     throw new InvalidOperationException($"Patient '{patientId}' does not have a treatment plan assigned.");
                 }
 
-                var treatmentPlan = await _unitOfWork.TreatmentPlansRepository
-                    .GetByIdAsync(patient.TreatmentPlanId.Value);
-
-                if (treatmentPlan == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Treatment plan with ID '{patient.TreatmentPlanId}' not found, but patient has it assigned.");
-                }
-
-                var treatmentPlanDto = _mapper.Map<TreatmentPlanResponseDTO>(treatmentPlan);
+                var treatmentPlanDto = _mapper.Map<TreatmentPlanResponseDTO>(patient.TreatmentPlan);
 
                 return treatmentPlanDto;
             }
@@ -108,7 +99,7 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.TreatmentPlansRepository.AddAsync(treatmentPlan);
                 await _unitOfWork.SaveAsync();
 
-                patient.TreatmentPlanId = treatmentPlan.Id;
+                patient.TreatmentPlan = treatmentPlan;
                 _unitOfWork.PatientsRepository.Update(patient);
 
                 await _unitOfWork.SaveAsync();
