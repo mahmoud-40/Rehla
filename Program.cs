@@ -80,6 +80,7 @@ namespace BreastCancer
             builder.Services.AddScoped<ICaregiverRepository, CaregiverRepository>();
             builder.Services.AddScoped<ITreatmentPlanRepository, TreatmentPlanRepository>();
             builder.Services.AddScoped<ICaregiverService, CaregiverService>();
+            builder.Services.AddScoped<IAdminService, AdminService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
