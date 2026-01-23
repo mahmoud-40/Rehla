@@ -13,7 +13,9 @@ namespace BreastCancer.DTO.request
 
         [Range(0, 60)]
         public int? YearsOfExperience { get; set; }
-        
+
+        [Required]
+        public string? NationalIdImagePath { get; set; }
         public override string Role => "Doctor";
 
         [JsonIgnore]

@@ -38,6 +38,9 @@ namespace BreastCancer.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            if (string.IsNullOrEmpty(doctor.NationalIdImagePath))
+                return BadRequest("National ID image is required. Upload it first to get the path.");
+
             var result = await accountService.DoctorRegister(doctor);
             if (result.IsSuccess)
                 return Ok(new { message = "Doctor account created successfully. Please check your email to confirm your account." });
@@ -50,6 +53,7 @@ namespace BreastCancer.Controllers
 
             return BadRequest(ModelState);
         }
+        
 
         /// <summary>
         /// Register a new patient account
@@ -112,7 +116,65 @@ namespace BreastCancer.Controllers
 
             return BadRequest(ModelState);
         }
+        // ============================== AUTH ==============================
+        /// <summary>
+        /// Confirms user's email address.
+        /// </summary>
+        /// <param name="confirmEmail">Email confirmation data.</param>
+        /// <remarks>
+        /// Confirms the user's email using the confirmation code sent after registration.
+        /// The user cannot log in until the email is successfully confirmed.
+        /// </remarks>
+        [HttpPost("ConfirmEmail")]
+        [SwaggerOperation(
+            Summary = "Confirm email address",
+            Description = "Validates confirmation code and activates the user account."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Email confirmed successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid or expired confirmation code")]
+        public async Task<IActionResult> ConfirmEmailAsync( ConfirmEmailDTO confirmEmail)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var result = await accountService.ConfirmEmailAsync(confirmEmail);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Email confirmed successfully. You can now log in." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+
+        }
+
+        /// <summary>
+        /// Resends email confirmation code.
+        /// </summary>
+        /// <param name="Email">Registered email address.</param>
+        /// <remarks>
+        /// Sends a new email confirmation code if the previous one expired or was not received.
+        /// </remarks>
+        [HttpPost("ResendConfirmation")]
+        [SwaggerOperation(
+            Summary = "Resend email confirmation code",
+            Description = "Sends a new email confirmation code to the user's email."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Confirmation email sent")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Email not found or already confirmed")]
+        public async Task<IActionResult> ResendConfirmationAsync([FromQuery] string Email)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await accountService.ResendConfirmationCodeAsync(Email);
+
+            if (result.IsSuccess)
+                return Ok(new { message = "Confirmation email has been sent. Please check your inbox." });
+
+            ModelState.AddModelError("", result.Errors.First());
+            return BadRequest(ModelState);
+
+        }
         /// <summary>
         /// Authenticate user and receive JWT tokens
         /// </summary>
@@ -220,7 +282,7 @@ namespace BreastCancer.Controllers
         }
 
         [HttpPost("forget-password/code")]
-        public async Task<IActionResult> SendForgetPasswordCodeAsync(string Email)
+        public async Task<IActionResult> SendForgetPasswordCodeAsync([FromQuery] string Email)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
