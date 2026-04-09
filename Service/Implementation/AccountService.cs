@@ -75,6 +75,8 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.SaveAsync();
                 await transaction.CommitAsync();
 
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
+
                 return (true, null);
             }
             catch
@@ -108,6 +110,8 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.SaveAsync();
                 await transaction.CommitAsync();
 
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
+
                 return (true, null);
             }
             catch
@@ -138,6 +142,8 @@ namespace BreastCancer.Service.Implementation
                 await _unitOfWork.SaveAsync();
                 await transaction.CommitAsync();
 
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
+
                 return (true, null);
             }
             catch
@@ -147,11 +153,11 @@ namespace BreastCancer.Service.Implementation
             }
         }
 
-        private async Task<(string Id, bool IsSuccess, IEnumerable<string> Errors)> CreateUserAsync(BaseRegisterDTO model)
+        private async Task<(string Id, bool IsSuccess, IEnumerable<string> Errors, string? EmailTo, string? EmailBody)> CreateUserAsync(BaseRegisterDTO model)
         {
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
             if (existingUser != null)
-                return (null!, false, new[] { "An account with this email already exists." });
+                return (null!, false, new[] { "An account with this email already exists." }, null, null);
 
             var user = new ApplicationUser
             {
@@ -167,7 +173,7 @@ namespace BreastCancer.Service.Implementation
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
-                return (null!, false, result.Errors.Select(e => e.Description));
+                return (null!, false, result.Errors.Select(e => e.Description), null, null);
 
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             user.EmailConfirmationCode = code;
@@ -176,12 +182,11 @@ namespace BreastCancer.Service.Implementation
 
             var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
             if (!roleResult.Succeeded)
-                return (null!, false, roleResult.Errors.Select(e => e.Description));
+                return (null!, false, roleResult.Errors.Select(e => e.Description), null, null);
 
-            var body = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
-            await _emailService.SendEmailAsync(user.Email!, "Confirm Your Email Address", body);
+            var emailBody = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
 
-            return (user.Id!, true, null!);
+            return (user.Id!, true, null!, user.Email!, emailBody);
         }
 
         public async Task<TokenResponseDTO> LoginAsync(LoginDTO loginDTO)
