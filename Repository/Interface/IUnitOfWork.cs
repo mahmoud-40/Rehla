@@ -1,4 +1,6 @@
-﻿namespace BreastCancer.Repository.Interface
+﻿using Microsoft.EntityFrameworkCore.Storage;
+
+namespace BreastCancer.Repository.Interface
 {
     public interface IUnitOfWork
     {
@@ -7,7 +9,8 @@
         ICaregiverRepository CaregiversRepository { get; }
         ITreatmentPlanRepository TreatmentPlansRepository { get; }
         IRefreshTokenRepository RefreshTokenRepository { get; }
-        
+
+        Task<IDbContextTransaction> BeginTransactionAsync();
 
         Task<int> SaveAsync();
 
