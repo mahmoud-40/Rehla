@@ -55,91 +55,110 @@ namespace BreastCancer.Service.Implementation
 
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> DoctorRegister(DoctorRegisterDTO DoctorFromRequest)
         {
-
-            var userResult = await CreateUserAsync(DoctorFromRequest);
-
-            if (!userResult.IsSuccess)
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                return (false, userResult.Errors);
+                var userResult = await CreateUserAsync(DoctorFromRequest);
+                if (!userResult.IsSuccess)
+                    return (false, userResult.Errors);
+
+                var doctor = new Doctor
+                {
+                    UserId = userResult.Id,
+                    LicenseNumber = DoctorFromRequest.LicenseNumber,
+                    Specialization = DoctorFromRequest.Specialization,
+                    YearsOfExperience = DoctorFromRequest.YearsOfExperience,
+                    NationalIdImage = DoctorFromRequest.NationalIdImagePath
+                };
+
+                _unitOfWork.DoctorsRepository.Add(doctor);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
+
+                return (true, null);
             }
-            
-
-            var doctor = new Doctor
+            catch
             {
-                UserId = userResult.Id,
-                LicenseNumber = DoctorFromRequest.LicenseNumber,
-                Specialization = DoctorFromRequest.Specialization,
-                YearsOfExperience = DoctorFromRequest.YearsOfExperience,
-                NationalIdImage = DoctorFromRequest.NationalIdImagePath
-            };
-
-            _unitOfWork.DoctorsRepository.Add(doctor);
-            await _unitOfWork.SaveAsync();
-
-            return (true, null);
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> CaregiverRegister(CaregiverRegisterDTO CaregiverFromRequest)
         {
-            var userResult = await CreateUserAsync(CaregiverFromRequest);
-
-            if (!userResult.IsSuccess)
-            {
-                return (false, userResult.Errors);
-            }
-            var Patient = await _unitOfWork.PatientsRepository.GetByEmailAsync(CaregiverFromRequest.PatientEmail);
-
-            if (Patient == null)
+            var patient = await _unitOfWork.PatientsRepository.GetByEmailAsync(CaregiverFromRequest.PatientEmail);
+            if (patient == null)
                 return (false, new[] { "Invalid Email Patient" });
 
-            var caregiver = new Caregiver
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                UserId = userResult.Id,
-                RelationshipType = CaregiverFromRequest.RelationshipType,
-                PatientId = Patient.UserId
+                var userResult = await CreateUserAsync(CaregiverFromRequest);
+                if (!userResult.IsSuccess)
+                    return (false, userResult.Errors);
 
-            };
+                var caregiver = new Caregiver
+                {
+                    UserId = userResult.Id,
+                    RelationshipType = CaregiverFromRequest.RelationshipType,
+                    PatientId = patient.UserId
+                };
 
-            _unitOfWork.CaregiversRepository.Add(caregiver);
-            await _unitOfWork.SaveAsync();
+                _unitOfWork.CaregiversRepository.Add(caregiver);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
 
-            return (true, null);
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
 
+                return (true, null);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
+
 
         public async Task<(bool IsSuccess, IEnumerable<string> Errors)> PatientRegister(PatientRegisterDTO PatientFromRequest)
         {
-            var userResult = await CreateUserAsync(PatientFromRequest);
-
-            if (!userResult.IsSuccess)
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                return (false, userResult.Errors);
+                var userResult = await CreateUserAsync(PatientFromRequest);
+                if (!userResult.IsSuccess)
+                    return (false, userResult.Errors);
+
+                var patient = new Patient
+                {
+                    UserId = userResult.Id,
+                    MedicalHistory = PatientFromRequest.MedicalHistory,
+                    DoctorId = null
+                };
+
+                _unitOfWork.PatientsRepository.Add(patient);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                await _emailService.SendEmailAsync(userResult.EmailTo!, "Confirm Your Email Address", userResult.EmailBody!);
+
+                return (true, null);
             }
-
-            var patient = new Patient
+            catch
             {
-                UserId = userResult.Id,
-                MedicalHistory = PatientFromRequest.MedicalHistory,
-                DoctorId = null // will be assigned later
-
-            };
-
-            _unitOfWork.PatientsRepository.Add(patient);
-            await _unitOfWork.SaveAsync();
-
-            return (true, null);
-
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
-        private async Task<(string Id, bool IsSuccess, IEnumerable<string> Errors)> CreateUserAsync(BaseRegisterDTO model)
+        private async Task<(string Id, bool IsSuccess, IEnumerable<string> Errors, string? EmailTo, string? EmailBody)> CreateUserAsync(BaseRegisterDTO model)
         {
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
-
             if (existingUser != null)
-                return (null!, false, new[] { "An account with this email already exists." });
+                return (null!, false, new[] { "An account with this email already exists." }, null, null);
 
-
-            // ToDo: AutoMapper
             var user = new ApplicationUser
             {
                 FirstName = model.FirstName,
@@ -153,29 +172,21 @@ namespace BreastCancer.Service.Implementation
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
-
             if (!result.Succeeded)
-                return (null!, false, result.Errors.Select(e => e.Description)!);
+                return (null!, false, result.Errors.Select(e => e.Description), null, null);
 
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
             user.EmailConfirmationCode = code;
             user.EmailConfirmationCodeExpireAt = DateTime.UtcNow.AddMinutes(5).ToLocalTime();
-
             await _userManager.UpdateAsync(user);
 
-            var body = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
-            await _emailService.SendEmailAsync(user.Email!, "Confirm Your Email Address", body);
-
-
-
-            // Assign Role
             var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
-
             if (!roleResult.Succeeded)
-                return (null!, false, roleResult.Errors.Select(e => e.Description)!);
+                return (null!, false, roleResult.Errors.Select(e => e.Description), null, null);
 
-            return (user.Id!, true, null!);
+            var emailBody = EmailTemplates.GetConfirmationEmail(user.FullName, user.EmailConfirmationCode);
+
+            return (user.Id!, true, null!, user.Email!, emailBody);
         }
 
         public async Task<TokenResponseDTO> LoginAsync(LoginDTO loginDTO)

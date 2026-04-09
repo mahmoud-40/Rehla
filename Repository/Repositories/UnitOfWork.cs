@@ -1,6 +1,8 @@
 ﻿using BreastCancer.Context;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Repository.Repositories
 {
@@ -75,6 +77,9 @@ namespace BreastCancer.Repository.Repositories
                 return _refreshTokenRepository;
             }
         }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync() => await context.Database.BeginTransactionAsync();
+
         public void Save()
         {
             context.SaveChanges();
