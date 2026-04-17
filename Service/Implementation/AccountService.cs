@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BreastCancer.Context;
+using BreastCancer.Enum;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -102,7 +103,9 @@ namespace BreastCancer.Service.Implementation
                 var caregiver = new Caregiver
                 {
                     UserId = userResult.Id,
-                    RelationshipType = CaregiverFromRequest.RelationshipType,
+                    RelationshipType = System.Enum.TryParse<RelationshipType>(CaregiverFromRequest.RelationshipType, true, out var relationshipType)
+                        ? relationshipType
+                        : RelationshipType.OTHER,
                     PatientId = patient.UserId
                 };
 
@@ -458,7 +461,7 @@ namespace BreastCancer.Service.Implementation
 
             return result.ToString();
         }
-    
-        
+
+
     }
 }
