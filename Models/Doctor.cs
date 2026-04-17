@@ -22,8 +22,9 @@ namespace BreastCancer.Models
 
         public bool IsVerified { get; set; } = false;
 
-        public virtual ApplicationUser User { get; set; }
+        public virtual ApplicationUser? User { get; set; }
 
         public virtual ICollection<Patient> Patients { get; set; } = new List<Patient>();
+        public virtual ICollection<NutritionPlan> NutritionPlans { get; set; } = new List<NutritionPlan>();
     }
 }
