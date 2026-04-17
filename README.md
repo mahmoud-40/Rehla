@@ -124,8 +124,6 @@ Coverage:
 ```bash
 # Generate coverage report (Cobertura)
 dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage/ /p:CoverletOutputFormat=cobertura
-```
-
 
 # Run with current threshold gate
 dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage/ /p:CoverletOutputFormat=cobertura /p:Threshold=2 /p:ThresholdType=line /p:ThresholdStat=total
