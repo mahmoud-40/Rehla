@@ -100,12 +100,16 @@ namespace BreastCancer.Service.Implementation
                 if (!userResult.IsSuccess)
                     return (false, userResult.Errors);
 
+                if (!System.Enum.TryParse<RelationshipType>(CaregiverFromRequest.RelationshipType, true, out var relationshipType) ||
+                    !System.Enum.IsDefined(typeof(RelationshipType), relationshipType))
+                {
+                    return (false, new[] { "Invalid relationship type. Allowed values are: FATHER, MOTHER, BROTHER, SISTER, COUSIN, FRIEND, OTHER." });
+                }
+
                 var caregiver = new Caregiver
                 {
                     UserId = userResult.Id,
-                    RelationshipType = System.Enum.TryParse<RelationshipType>(CaregiverFromRequest.RelationshipType, true, out var relationshipType)
-                        ? relationshipType
-                        : RelationshipType.OTHER,
+                    RelationshipType = relationshipType,
                     PatientId = patient.UserId
                 };
 
