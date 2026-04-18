@@ -17,7 +17,7 @@ namespace BreastCancer.Models
         public required virtual Patient Patient { get; set; }
 
         [Required]
-        public string? CreatedBy { get; set; }
+        public required string CreatedBy { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

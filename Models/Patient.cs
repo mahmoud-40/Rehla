@@ -17,7 +17,7 @@ namespace BreastCancer.Models
         public virtual ICollection<NutritionPlan> NutritionPlans { get; set; } = new List<NutritionPlan>();
         public virtual ICollection<MealLog> MealLogs { get; set; } = new List<MealLog>();
 
-        public virtual ApplicationUser? User { get; set; }
+        public virtual ApplicationUser User { get; set; } = null!;
 
         public virtual ICollection<Caregiver> Caregivers { get; set; } = new List<Caregiver>();
     }
