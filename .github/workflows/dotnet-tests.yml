@@ -1,0 +1,44 @@
+name: Dotnet Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  test-and-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore BreastCancer.sln
+
+      - name: Run tests with coverage threshold (Whole Project)
+        run: >-
+          dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj
+          --configuration Release
+          --no-restore
+          /p:CollectCoverage=true
+          /p:CoverletOutput=./TestResults/coverage/
+          /p:CoverletOutputFormat=cobertura
+          /p:Threshold=8
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-cobertura
+          path: BreastCancer.Tests/TestResults/coverage/coverage.cobertura.xml
+          if-no-files-found: warn
