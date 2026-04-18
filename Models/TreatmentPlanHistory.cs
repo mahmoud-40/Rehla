@@ -12,7 +12,7 @@ namespace BreastCancer.Models
 
         [Required]
         public int TreatmentPlanId { get; set; }
-        public virtual TreatmentPlan TreatmentPlan { get; set; }
+        public virtual TreatmentPlan TreatmentPlan { get; set; } = null!;
 
         [Required]
         public TreatmentPlanStatus Status { get; set; }
