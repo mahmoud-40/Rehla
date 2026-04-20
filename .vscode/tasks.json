@@ -13,7 +13,7 @@
         "/p:CollectCoverage=true",
         "/p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage/",
         "/p:CoverletOutputFormat=cobertura",
-        "/p:Threshold=9",
+        "/p:Threshold=11",
         "/p:ThresholdType=line",
         "/p:ThresholdStat=total"
       ],
