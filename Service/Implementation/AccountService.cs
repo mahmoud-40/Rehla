@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BreastCancer.Context;
+using BreastCancer.Enum;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -99,10 +100,17 @@ namespace BreastCancer.Service.Implementation
                 if (!userResult.IsSuccess)
                     return (false, userResult.Errors);
 
+                if (!System.Enum.TryParse<RelationshipType>(CaregiverFromRequest.RelationshipType, true, out var relationshipType) ||
+                    !System.Enum.IsDefined(typeof(RelationshipType), relationshipType))
+                {
+                    var allowedRelationshipTypes = string.Join(", ", System.Enum.GetNames<RelationshipType>());
+                    return (false, new[] { $"Invalid relationship type. Allowed values are: {allowedRelationshipTypes}." });
+                }
+
                 var caregiver = new Caregiver
                 {
                     UserId = userResult.Id,
-                    RelationshipType = CaregiverFromRequest.RelationshipType,
+                    RelationshipType = relationshipType,
                     PatientId = patient.UserId
                 };
 
@@ -458,7 +466,7 @@ namespace BreastCancer.Service.Implementation
 
             return result.ToString();
         }
-    
-        
+
+
     }
 }
