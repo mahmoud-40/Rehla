@@ -122,24 +122,28 @@ dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --filter FullyQualified
 Coverage:
 
 ```bash
-# Generate coverage report (Cobertura)
-dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage/ /p:CoverletOutputFormat=cobertura
+# 1) Full coverage report (no threshold gate)
+dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-full/ /p:CoverletOutputFormat=cobertura
 
-# Run with current threshold gate
-dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage/ /p:CoverletOutputFormat=cobertura /p:Threshold=2 /p:ThresholdType=line /p:ThresholdStat=total
+# 2) Scoped coverage gate (business logic only)
+dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-scoped/ /p:CoverletOutputFormat=cobertura /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**" /p:Threshold=30 /p:ThresholdType=line /p:ThresholdStat=total
+
+# Run both sequentially (Windows cmd)
+dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-full/ /p:CoverletOutputFormat=cobertura && dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-scoped/ /p:CoverletOutputFormat=cobertura /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**" /p:Threshold=30 /p:ThresholdType=line /p:ThresholdStat=total
 ```
 
 Coverage file:
 
 ```text
-BreastCancer.Tests/TestResults/coverage/coverage.cobertura.xml
+BreastCancer.Tests/TestResults/coverage-full/coverage.cobertura.xml
+BreastCancer.Tests/TestResults/coverage-scoped/coverage.cobertura.xml
 ```
 
 CI (GitHub Actions):
 
 - Workflow: `.github/workflows/dotnet-tests.yml`
 - Trigger: pull requests, pushes to `main`/`master`
-- Action: run tests + coverage + threshold gate + upload coverage artifact
+- Action: run tests + full coverage report + scoped coverage threshold gate + upload both coverage artifacts
 
 ## Project Structure
 
