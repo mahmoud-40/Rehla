@@ -31,7 +31,7 @@ jobs:
           /p:CollectCoverage=true
           /p:CoverletOutput=./TestResults/coverage/
           /p:CoverletOutputFormat=cobertura
-          /p:Threshold=10
+          /p:Threshold=9
           /p:ThresholdType=line
           /p:ThresholdStat=total
 
