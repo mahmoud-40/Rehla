@@ -234,7 +234,7 @@ public class CaregiverControllerIntegrationTests
         {
             if (id == "missing")
             {
-                return Task.FromResult<CaregiverResponse>(null!);
+                throw new Exception("Caregiver not found.");
             }
 
             return Task.FromResult(new CaregiverResponse

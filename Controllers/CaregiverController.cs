@@ -40,12 +40,15 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status404NotFound, "Caregiver not found")]
         public async Task<IActionResult> GetCaregiverById(string id)
         {
-            var caregiver = await _caregiverService.GetCaregiverById(id);
-            if (caregiver == null)
+            try
             {
-                return NotFound();
+                var caregiver = await _caregiverService.GetCaregiverById(id);
+                return Ok(caregiver);
             }
-            return Ok(caregiver);
+            catch (Exception ex) when (ex.Message == "Caregiver not found.")
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         [HttpGet("patient/{patientId}")]
@@ -70,7 +73,7 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         public async Task<IActionResult> CreateCaregiver([FromBody] CaregiverCreateDTO caregiverDto)
         {
-             await _caregiverService.CreateCaregiver(caregiverDto);
+            await _caregiverService.CreateCaregiver(caregiverDto);
             return CreatedAtAction(nameof(GetAllCaregivers), null);
         }
 
