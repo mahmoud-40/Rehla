@@ -200,16 +200,16 @@ namespace BreastCancer.Mapping
 
             CreateMap<PatientDiagnosis, PatientChatbotContextDTO>()
                 .ForMember(dest => dest.AgeAtDiagnosis, opt => opt.MapFrom(src => src.AgeAtDiagnosis))
-                .ForMember(dest => dest.CancerType, opt => opt.MapFrom(src => src.CancerType))
-                .ForMember(dest => dest.CancerTypeDetailed, opt => opt.MapFrom(src => src.CancerTypeDetailed))
-                .ForMember(dest => dest.TumorStage, opt => opt.MapFrom(src => src.TumorStage))
-                .ForMember(dest => dest.NeoplasmHistologicGrade, opt => opt.MapFrom(src => src.NeoplasmHistologicGrade))
-                .ForMember(dest => dest.ErStatus, opt => opt.MapFrom(src => src.ErStatus))
-                .ForMember(dest => dest.PrStatus, opt => opt.MapFrom(src => src.PrStatus))
-                .ForMember(dest => dest.Her2Status, opt => opt.MapFrom(src => src.Her2Status))
-                .ForMember(dest => dest.Chemotherapy, opt => opt.MapFrom(src => src.Chemotherapy))
-                .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy))
-                .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy));
+                .ForMember(dest => dest.CancerType, opt => opt.MapFrom(src => src.CancerType ?? string.Empty))
+                .ForMember(dest => dest.CancerTypeDetailed, opt => opt.MapFrom(src => src.CancerTypeDetailed ?? string.Empty))
+                .ForMember(dest => dest.TumorStage, opt => opt.MapFrom(src => src.TumorStage ?? string.Empty))
+                .ForMember(dest => dest.NeoplasmHistologicGrade, opt => opt.MapFrom(src => src.NeoplasmHistologicGrade ?? string.Empty))
+                .ForMember(dest => dest.ErStatus, opt => opt.MapFrom(src => src.ErStatus ?? string.Empty))
+                .ForMember(dest => dest.PrStatus, opt => opt.MapFrom(src => src.PrStatus ?? string.Empty))
+                .ForMember(dest => dest.Her2Status, opt => opt.MapFrom(src => src.Her2Status ?? string.Empty))
+                .ForMember(dest => dest.Chemotherapy, opt => opt.MapFrom(src => src.Chemotherapy ?? string.Empty))
+                .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy ?? string.Empty))
+                .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy ?? string.Empty));
 
             #endregion
         }
