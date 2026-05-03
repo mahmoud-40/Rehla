@@ -41,7 +41,7 @@ jobs:
           /p:CoverletOutput=./TestResults/coverage-scoped/
           /p:CoverletOutputFormat=cobertura
           /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**"
-          /p:Threshold=30
+          /p:Threshold=35
           /p:ThresholdType=line
           /p:ThresholdStat=total
 
