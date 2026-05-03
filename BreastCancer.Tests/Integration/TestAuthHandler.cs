@@ -21,7 +21,13 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var userId = Request.Headers.TryGetValue(UserIdHeader, out var headerValue)
+        if (Request.Headers.TryGetValue(UserIdHeader, out var headerValue)
+            && string.IsNullOrWhiteSpace(headerValue.ToString()))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        var userId = Request.Headers.TryGetValue(UserIdHeader, out headerValue)
             ? headerValue.ToString()
             : "test-user";
 

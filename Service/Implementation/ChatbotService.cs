@@ -3,10 +3,12 @@ using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace BreastCancer.Service.Implementation
 {
@@ -38,7 +40,7 @@ namespace BreastCancer.Service.Implementation
                 if (diagnosis == null)
                 {
                     _logger.LogWarning("Patient diagnosis not found for PatientId: {PatientId}", askDto.PatientId);
-                    throw new InvalidOperationException("Patient diagnosis not found");
+                    throw new ChatbotDiagnosisNotFoundException("Patient diagnosis not found");
                 }
 
                 var chatbotRequest = _mapper.Map<ChatbotRequestDTO>(askDto);
@@ -49,28 +51,33 @@ namespace BreastCancer.Service.Implementation
 
                 using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(_chatbotTimeoutSeconds));
 
-                var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest, cancellationTokenSource.Token);
+                using var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest, cancellationTokenSource.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var chatbotAnswer = await response.Content.ReadFromJsonAsync<ChatbotResponse>();
+                    if (chatbotAnswer == null)
+                    {
+                        throw new ChatbotExternalServiceException("Chatbot API returned an empty response", HttpStatusCode.BadGateway);
+                    }
+
                     return chatbotAnswer;
                 }
                 else
                 {
                     _logger.LogError("Chatbot API returned error: {StatusCode}", response.StatusCode);
-                    throw new InvalidOperationException($"Chatbot API error: {response.StatusCode}");
+                    throw new ChatbotExternalServiceException("Chatbot API returned an error", response.StatusCode);
                 }
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error communicating with chatbot API");
-                throw new InvalidOperationException("Failed to communicate with chatbot service", ex);
+                throw new ChatbotExternalServiceException("Failed to communicate with chatbot service", HttpStatusCode.ServiceUnavailable, ex);
             }
             catch (TaskCanceledException ex)
             {
                 _logger.LogError(ex, "Chatbot API request timed out");
-                throw new InvalidOperationException("Chatbot service request timed out", ex);
+                throw new ChatbotExternalServiceTimeoutException("Chatbot service request timed out", ex);
             }
         }
     }

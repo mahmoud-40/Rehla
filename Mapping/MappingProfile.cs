@@ -207,9 +207,9 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.ErStatus, opt => opt.MapFrom(src => src.ErStatus ?? string.Empty))
                 .ForMember(dest => dest.PrStatus, opt => opt.MapFrom(src => src.PrStatus ?? string.Empty))
                 .ForMember(dest => dest.Her2Status, opt => opt.MapFrom(src => src.Her2Status ?? string.Empty))
-                .ForMember(dest => dest.Chemotherapy, opt => opt.MapFrom(src => src.Chemotherapy ?? string.Empty))
-                .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy ?? string.Empty))
-                .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy ?? string.Empty));
+                .ForMember(dest => dest.Chemotherapy, opt => opt.MapFrom(src => src.Chemotherapy))
+                .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy))
+                .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy));
 
             #endregion
         }

@@ -5,9 +5,9 @@ using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Implementation;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -44,7 +44,7 @@ public class ChatbotServiceTests
     }
 
     [Fact]
-    public async Task AskQuestion_WhenDiagnosisMissing_ThrowsInvalidOperationException()
+    public async Task AskQuestion_WhenDiagnosisMissing_ThrowsDiagnosisNotFoundException()
     {
         var sut = CreateSut();
 
@@ -58,12 +58,12 @@ public class ChatbotServiceTests
             Question = "Any advice?"
         });
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<ChatbotDiagnosisNotFoundException>()
             .WithMessage("Patient diagnosis not found");
     }
 
     [Fact]
-    public async Task AskQuestion_WhenApiReturnsError_ThrowsInvalidOperationException()
+    public async Task AskQuestion_WhenApiReturnsError_ThrowsExternalServiceException()
     {
         var sut = CreateSut();
         sut.PatientDiagnosisRepository
@@ -78,12 +78,12 @@ public class ChatbotServiceTests
             Question = "Any advice?"
         });
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Chatbot API error: BadRequest");
+        var exception = await act.Should().ThrowAsync<ChatbotExternalServiceException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task AskQuestion_WhenHttpRequestFails_ThrowsInvalidOperationException()
+    public async Task AskQuestion_WhenHttpRequestFails_ThrowsExternalServiceException()
     {
         var sut = CreateSut();
         sut.PatientDiagnosisRepository
@@ -98,12 +98,12 @@ public class ChatbotServiceTests
             Question = "Any advice?"
         });
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Failed to communicate with chatbot service");
+        var exception = await act.Should().ThrowAsync<ChatbotExternalServiceException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
     }
 
     [Fact]
-    public async Task AskQuestion_WhenRequestTimesOut_ThrowsInvalidOperationException()
+    public async Task AskQuestion_WhenRequestTimesOut_ThrowsTimeoutException()
     {
         var sut = CreateSut();
         sut.PatientDiagnosisRepository
@@ -118,25 +118,13 @@ public class ChatbotServiceTests
             Question = "Any advice?"
         });
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<ChatbotExternalServiceTimeoutException>()
             .WithMessage("Chatbot service request timed out");
     }
 
     [Fact]
     public void Constructor_WhenApiUrlMissing_ThrowsInvalidOperationException()
     {
-        var userStore = new Mock<IUserStore<ApplicationUser>>();
-        var userManager = new Mock<UserManager<ApplicationUser>>(
-            userStore.Object,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!);
-
         var unitOfWork = new Mock<IUnitOfWork>();
         var mapper = BuildMapper();
         var httpClient = new HttpClient(new ChatbotHttpMessageHandler());
@@ -152,7 +140,6 @@ public class ChatbotServiceTests
         var act = () => new ChatbotService(
             unitOfWork.Object,
             mapper.Object,
-            userManager.Object,
             httpClient,
             configuration,
             logger.Object);
@@ -179,18 +166,6 @@ public class ChatbotServiceTests
 
     private static SutContext CreateSut()
     {
-        var userStore = new Mock<IUserStore<ApplicationUser>>();
-        var userManager = new Mock<UserManager<ApplicationUser>>(
-            userStore.Object,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!,
-            null!);
-
         var unitOfWork = new Mock<IUnitOfWork>();
         var diagnosisRepository = new Mock<IPatientDiagnosisRepository>();
         unitOfWork.SetupGet(x => x.PatientDiagnosisRepository).Returns(diagnosisRepository.Object);
@@ -213,7 +188,6 @@ public class ChatbotServiceTests
         var service = new ChatbotService(
             unitOfWork.Object,
             mapper.Object,
-            userManager.Object,
             httpClient,
             configuration,
             logger.Object);

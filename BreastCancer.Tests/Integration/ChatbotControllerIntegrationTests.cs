@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using BreastCancer.Controllers;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
@@ -64,31 +65,11 @@ public class ChatbotControllerIntegrationTests
     }
 
     [Fact]
-    public async Task AskChatbot_ReturnsForbidden_WhenUserIdMissing()
-    {
-        var fake = new FakeChatbotService();
-
-        await using var app = await BuildAppAsync(fake);
-        using var client = app.GetTestClient();
-
-        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, string.Empty);
-
-        var response = await client.PostAsJsonAsync("/api/Chatbot/ask", new ChatbotAskDTO
-        {
-            PatientId = "patient-1",
-            Question = "Any advice?"
-        });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        fake.LastRequest.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task AskChatbot_ReturnsBadRequest_WhenServiceThrowsInvalidOperation()
+    public async Task AskChatbot_ReturnsNotFound_WhenDiagnosisMissing()
     {
         var fake = new FakeChatbotService
         {
-            ExceptionToThrow = new InvalidOperationException("Patient diagnosis not found")
+            ExceptionToThrow = new ChatbotDiagnosisNotFoundException("Patient diagnosis not found")
         };
 
         await using var app = await BuildAppAsync(fake);
@@ -102,7 +83,73 @@ public class ChatbotControllerIntegrationTests
             Question = "Any advice?"
         });
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AskChatbot_ReturnsBadGateway_WhenUpstreamFails()
+    {
+        var fake = new FakeChatbotService
+        {
+            ExceptionToThrow = new ChatbotExternalServiceException("Chatbot API returned an error", HttpStatusCode.BadRequest)
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, "patient-1");
+
+        var response = await client.PostAsJsonAsync("/api/Chatbot/ask", new ChatbotAskDTO
+        {
+            PatientId = "patient-1",
+            Question = "Any advice?"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+    }
+
+    [Fact]
+    public async Task AskChatbot_ReturnsServiceUnavailable_WhenUpstreamUnavailable()
+    {
+        var fake = new FakeChatbotService
+        {
+            ExceptionToThrow = new ChatbotExternalServiceException("Failed to communicate with chatbot service", HttpStatusCode.ServiceUnavailable)
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, "patient-1");
+
+        var response = await client.PostAsJsonAsync("/api/Chatbot/ask", new ChatbotAskDTO
+        {
+            PatientId = "patient-1",
+            Question = "Any advice?"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    public async Task AskChatbot_ReturnsGatewayTimeout_WhenUpstreamTimesOut()
+    {
+        var fake = new FakeChatbotService
+        {
+            ExceptionToThrow = new ChatbotExternalServiceTimeoutException("Chatbot service request timed out")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, "patient-1");
+
+        var response = await client.PostAsJsonAsync("/api/Chatbot/ask", new ChatbotAskDTO
+        {
+            PatientId = "patient-1",
+            Question = "Any advice?"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.GatewayTimeout);
     }
 
     [Fact]

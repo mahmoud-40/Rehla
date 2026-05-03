@@ -1,9 +1,12 @@
 using BreastCancer.DTO.request;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace BreastCancer.Controllers
@@ -26,14 +29,19 @@ namespace BreastCancer.Controllers
         [SwaggerOperation(Summary = "Ask the chatbot a question")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the chatbot's response")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient diagnosis not found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "User not authenticated")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "User cannot access this patient's data")]
+        [SwaggerResponse(StatusCodes.Status502BadGateway, "Upstream chatbot error")]
+        [SwaggerResponse(StatusCodes.Status503ServiceUnavailable, "Chatbot service unavailable")]
+        [SwaggerResponse(StatusCodes.Status504GatewayTimeout, "Chatbot service timeout")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Server error")]
         public async Task<IActionResult> AskChatbot([FromBody] ChatbotAskDTO request)
         {
             try
             {
-                var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+                var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
                     _logger.LogWarning("Could not extract UserId from claims");
@@ -49,10 +57,25 @@ namespace BreastCancer.Controllers
                 var response = await _chatbotService.AskQuestion(request);
                 return Ok(response);
             }
-            catch (InvalidOperationException ex)
+            catch (ChatbotDiagnosisNotFoundException ex)
             {
-                _logger.LogWarning(ex, "Invalid operation in chatbot request");
-                return BadRequest(new { message = ex.Message });
+                _logger.LogWarning(ex, "Patient diagnosis not found in chatbot request");
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ChatbotExternalServiceTimeoutException ex)
+            {
+                _logger.LogWarning(ex, "Chatbot service timeout");
+                return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = ex.Message });
+            }
+            catch (ChatbotExternalServiceException ex)
+            {
+                _logger.LogWarning(ex, "Chatbot service failure");
+                if (ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = ex.Message });
+                }
+
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
             }
             catch (Exception ex)
             {

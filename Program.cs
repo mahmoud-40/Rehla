@@ -86,6 +86,7 @@ namespace BreastCancer
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddScoped<ITreatmentPlanService, TreatmentPlanService>();
+            builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();
