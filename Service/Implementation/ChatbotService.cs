@@ -14,17 +14,15 @@ namespace BreastCancer.Service.Implementation
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly HttpClient _httpClient;
         private readonly ILogger<ChatbotService> _logger;
         private readonly string _chatbotApiUrl;
         private readonly int _chatbotTimeoutSeconds;
 
-        public ChatbotService(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager, HttpClient httpClient, IConfiguration configuration, ILogger<ChatbotService> logger)
+        public ChatbotService(IUnitOfWork unitOfWork, IMapper mapper, HttpClient httpClient, IConfiguration configuration, ILogger<ChatbotService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _userManager = userManager;
             _httpClient = httpClient;
             _logger = logger;
             _chatbotApiUrl = configuration.GetValue<string>("ChatbotSettings:ApiUrl") ?? throw new InvalidOperationException("Chatbot API URL is not configured");
@@ -49,9 +47,9 @@ namespace BreastCancer.Service.Implementation
 
                 chatbotRequest.PatientContext = patientContext;
 
-                _httpClient.Timeout = TimeSpan.FromSeconds(_chatbotTimeoutSeconds);
+                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(_chatbotTimeoutSeconds));
 
-                var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest);
+                var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest, cancellationTokenSource.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
