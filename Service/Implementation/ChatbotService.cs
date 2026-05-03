@@ -49,9 +49,9 @@ namespace BreastCancer.Service.Implementation
 
                 chatbotRequest.PatientContext = patientContext;
 
-                _httpClient.Timeout = TimeSpan.FromSeconds(_chatbotTimeoutSeconds);
+                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(_chatbotTimeoutSeconds));
 
-                var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest);
+                var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest, cancellationTokenSource.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
