@@ -5,6 +5,6 @@ namespace BreastCancer.DTO.response
     public class ChatbotResponse
     {
         [Required]
-        public string Answer { get; set; }
+        public string Answer { get; set; } = string.Empty;
     }
 }
