@@ -40,6 +40,7 @@ services:
     restart: unless-stopped
     networks:
       - breast-cancer-network
+      - chatbot-network
 
 volumes:
   sqlserver-data:
@@ -47,3 +48,6 @@ volumes:
 networks:
   breast-cancer-network:
     driver: bridge
+  chatbot-network:
+    external: true
+    name: ai-driven-breast-cancer-recurrence-prediction-and-support-system_default

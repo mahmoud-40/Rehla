@@ -51,7 +51,13 @@ namespace BreastCancer.Service.Implementation
 
                 using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(_chatbotTimeoutSeconds));
 
+                _logger.LogInformation("Sending request to Chatbot API for PatientId: {PatientId}", askDto.PatientId);
+                _logger.LogDebug("Chatbot request payload: {@ChatbotRequest}", chatbotRequest);
+
                 using var response = await _httpClient.PostAsJsonAsync(_chatbotApiUrl, chatbotRequest, cancellationTokenSource.Token);
+
+                _logger.LogInformation("Chatbot API responded with status code: {StatusCode}", response.StatusCode);
+                _logger.LogDebug("Chatbot response: {@ChatbotResponse}", response);
 
                 if (response.IsSuccessStatusCode)
                 {
