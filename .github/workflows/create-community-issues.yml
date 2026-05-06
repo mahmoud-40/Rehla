@@ -1,0 +1,520 @@
+name: Create Community Module Issues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create COMM-01
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-01: Set up Community module project structure" \
+            --label "setup,backend" \
+            --body "## Description
+          Create the Rehla.Community class library project inside the solution with correct folder structure following domain-driven design. This is the skeleton everything else will attach to.
+
+          ## Acceptance Criteria
+          - Create Rehla.Community project and reference from main API
+          - Create folders: Domain, Services, Repositories, Api, Events, Infrastructure
+          - Add project to solution and verify it builds
+          - Add EF Core and MediatR NuGet packages to Community project
+          - Register module in Program.cs with a CommunityModule.Register(services) extension method
+
+          ## Technical Note
+          Follow the same folder convention used in existing modules so the codebase stays consistent.
+
+          **Epic:** Foundation | **Story Points:** 2"
+
+      - name: Create COMM-02
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-02: Design and apply community database schema migrations" \
+            --label "database,migrations" \
+            --body "## Description
+          Create EF Core entities and migrations for all community tables in SQL Server. All community tables live in a dedicated community schema to keep boundaries clear.
+
+          ## Acceptance Criteria
+          - Create Posts table with: Id, AuthorId, Content, Type (enum), Visibility (enum), CreatedAt, UpdatedAt, IsDeleted
+          - Create Comments table with: Id, PostId, AuthorId, Content, CreatedAt
+          - Create Reactions table with: Id, PostId, UserId, Type
+          - Create Follows table with: FollowerId, FollowingId, CreatedAt (composite PK)
+          - All tables use schema: community (e.g. community.Posts)
+          - Migration runs cleanly on local SQL Server with dotnet ef database update
+          - Seed script adds 3 sample posts for dev testing
+
+          ## Technical Note
+          Use soft delete (IsDeleted flag) on Posts — never hard delete. Regulators may audit medical community data.
+
+          **Epic:** Foundation | **Story Points:** 3"
+
+      - name: Create COMM-03
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-03: Set up MediatR events and pipeline in Community module" \
+            --label "backend,architecture" \
+            --body "## Description
+          Wire up MediatR so Community module can publish and consume domain events without coupling to other modules. Also set up logging and validation pipeline behaviors.
+
+          ## Acceptance Criteria
+          - Add MediatR registration scoped to Community assembly
+          - Create base DomainEvent record that all community events inherit
+          - Add LoggingBehavior pipeline that logs every IRequest with duration
+          - Add ValidationBehavior pipeline using FluentValidation
+          - Write a unit test proving PostCreatedEvent fires and a test handler receives it
+
+          ## Technical Note
+          Never reference other module internals directly. If you need a user name, inject IProfileService interface — not the Profile module classes.
+
+          **Epic:** Foundation | **Story Points:** 2"
+
+      - name: Create COMM-04
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-04: Set up Redis connection and base cache service" \
+            --label "redis,infrastructure" \
+            --body "## Description
+          Install StackExchange.Redis, wire up the connection multiplexer as a singleton, and create an ICacheService abstraction the rest of the module will call.
+
+          ## Acceptance Criteria
+          - Install StackExchange.Redis NuGet package
+          - Register ConnectionMultiplexer as singleton in DI — NOT transient
+          - Add RedisSettings section to appsettings.json (ConnectionString, DefaultTTL)
+          - Create ICacheService with GetAsync<T>, SetAsync<T>, DeleteAsync
+          - Implement RedisCacheService using IDatabase from the multiplexer
+          - Write integration test: set a string value, get it back, confirm match
+          - Add docker-compose.yml to repo with Redis on port 6379 for local dev
+
+          ## Technical Note
+          The multiplexer is expensive to create — one instance for the entire app lifetime. This is the most common Redis mistake in .NET.
+
+          **Epic:** Foundation | **Story Points:** 2"
+
+      - name: Create COMM-05
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-05: Implement follow / unfollow endpoints" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can follow or unfollow another user so that I see their posts in my feed.
+
+          ## Acceptance Criteria
+          - POST /community/users/{userId}/follow — creates follow relationship
+          - DELETE /community/users/{userId}/follow — removes follow relationship
+          - Returns 409 if trying to follow someone already followed
+          - Returns 404 if target user does not exist
+          - A user cannot follow themselves — return 400
+          - Fires FollowCreatedEvent via MediatR on successful follow
+          - Add rate limit: max 50 follow actions per hour per user
+
+          ## Technical Note
+          Validate both users exist by calling IProfileService.UserExistsAsync — do not join across module DB tables.
+
+          **Epic:** Social Graph | **Story Points:** 2"
+
+      - name: Create COMM-06
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-06: Get followers and following lists with pagination" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can view who I follow and who follows me, so I can manage my connections.
+
+          ## Acceptance Criteria
+          - GET /community/users/{userId}/followers — paginated list of followers
+          - GET /community/users/{userId}/following — paginated list of people they follow
+          - Both endpoints use cursor-based pagination (?cursor=&limit=20)
+          - Response includes: userId, displayName, role (Patient/Doctor/Caregiver), avatarUrl
+          - Returns empty array (not 404) when no followers exist
+          - Doctors can see their patient follower count but not names unless connected
+
+          ## Technical Note
+          Cursor pagination only — no offset. Offset breaks on live data when new follows are added between pages.
+
+          **Epic:** Social Graph | **Story Points:** 2"
+
+      - name: Create COMM-07
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-07: Implement create post endpoint with visibility rules" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can create a post with a specific type and visibility level so that the right audience sees it.
+
+          ## Acceptance Criteria
+          - POST /community/posts with body: content, type, visibility, mediaUrls[]
+          - Post types: Story | Question | MilestoneShare | DoctorUpdate
+          - Visibility: Public | PatientsOnly | CaregiverOnly | DoctorOnly
+          - Validate: content max 2000 chars, max 4 media URLs
+          - Doctors can post DoctorUpdate — Patients cannot — return 403 if violated
+          - Fires PostCreatedEvent after save including postId, authorId, visibility
+          - Returns 201 with full post object
+          - Write unit tests for all visibility validation rules
+
+          ## Technical Note
+          MilestoneShare posts should include an optional treatmentEventId FK that links to the Treatment module. Nullable — do not block post creation if it is missing.
+
+          **Epic:** Posts | **Story Points:** 3"
+
+      - name: Create COMM-08
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-08: Implement get, update and delete post endpoints" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can view, edit, and delete my own posts. As a moderator, I can delete any post.
+
+          ## Acceptance Criteria
+          - GET /community/posts/{postId} — respects visibility rules based on requester role
+          - PUT /community/posts/{postId} — author only, updates content and visibility
+          - DELETE /community/posts/{postId} — soft delete, author or MODERATOR role only
+          - GET returns 403 (not 404) when post exists but requester cannot see it
+          - Edited posts have an IsEdited flag and UpdatedAt timestamp visible to readers
+          - Deleting a post invalidates its Redis cache entry immediately
+
+          ## Technical Note
+          Never return 404 for a visibility-blocked post — it leaks existence. Always 403.
+
+          **Epic:** Posts | **Story Points:** 2"
+
+      - name: Create COMM-09
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-09: List posts by user profile" \
+            --label "backend,api" \
+            --body "## Description
+          As a user visiting a doctor or patient profile, I can see their public posts.
+
+          ## Acceptance Criteria
+          - GET /community/users/{userId}/posts — paginated, cursor-based
+          - Only returns posts the requester is allowed to see based on their role
+          - Sorted by newest first
+          - Exclude soft-deleted posts
+          - Response shape matches GET /community/posts/{postId}
+
+          ## Technical Note
+          Reuse the same visibility filter logic from COMM-08 — do not duplicate it.
+
+          **Epic:** Posts | **Story Points:** 2"
+
+      - name: Create COMM-10
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-10: Implement FanoutWorker with IHostedService and Channels queue" \
+            --label "backend,worker" \
+            --body "## Description
+          Build the background worker that reads fanout jobs from the in-memory Channel and distributes new post IDs to follower feeds in Redis.
+
+          ## Acceptance Criteria
+          - Create Channel<FanoutJob> registered as singleton
+          - FanoutJob record contains: PostId, AuthorId, Visibility, Timestamp
+          - FanoutWorker : BackgroundService reads from channel in ExecuteAsync loop
+          - Worker handles cancellation token — shuts down cleanly on app stop
+          - Unhandled exceptions inside worker are caught, logged, and do NOT crash the host
+          - FanoutHandler : INotificationHandler<PostCreatedEvent> writes to channel
+          - Write integration test: publish event → assert job appears in channel
+
+          ## Technical Note
+          Use Channel.CreateBounded(capacity: 5000) not unbounded. Bounded gives you backpressure — if the channel fills up, WriteAsync will wait rather than eating memory forever.
+
+          **Epic:** Fanout + Cache | **Story Points:** 3"
+
+      - name: Create COMM-11
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-11: Implement hybrid push/pull fanout logic" \
+            --label "backend,redis,worker" \
+            --body "## Description
+          The fanout worker should push post IDs to Redis feeds for normal users but skip pushing for authors with 500+ followers, who use pull-based retrieval instead.
+
+          ## Acceptance Criteria
+          - Worker queries Follows table for all follower IDs of the author
+          - If follower count is under 500: ZADD to each follower feed in Redis
+          - If follower count is 500+: write a HighFollowerPost record to DB only — feed service pulls on read
+          - Feed sorted set key: community:feed:{userId}
+          - Score is Unix timestamp (long) of post creation
+          - Cap each user feed at 500 entries — ZREMRANGEBYRANK trims the oldest on every ZADD
+          - Write a test with 600 followers and assert push was NOT used
+
+          ## Technical Note
+          The 500 threshold is a starting point — make it configurable in appsettings.json so you can tune without a redeploy. Key: Community:FanoutPushThreshold.
+
+          **Epic:** Fanout + Cache | **Story Points:** 5"
+
+      - name: Create COMM-12
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-12: Populate and invalidate post object cache" \
+            --label "backend,redis" \
+            --body "## Description
+          Cache full post objects in Redis so feed hydration does not hammer SQL Server on every request.
+
+          ## Acceptance Criteria
+          - After PostService saves a post: SET community:post:{postId} with 1 hour TTL
+          - On post update: overwrite the cache key with new content immediately
+          - On post delete (soft): DELETE community:post:{postId} from Redis immediately
+          - Cache stores serialized PostDto (not the EF entity)
+          - Write a test: create post → get from cache → update post → confirm cache reflects update
+
+          ## Technical Note
+          Cache the DTO, not the EF entity. EF entities carry change tracker state that will cause issues when deserialized.
+
+          **Epic:** Fanout + Cache | **Story Points:** 2"
+
+      - name: Create COMM-13
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-13: Implement get feed endpoint with cursor pagination" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can open my community feed and see the most recent posts from people I follow, paginated.
+
+          ## Acceptance Criteria
+          - GET /community/feed?cursor={lastPostId}&limit=20
+          - Reads post IDs from community:feed:{userId} sorted set using ZREVRANGE
+          - Default limit 20, max 50
+          - Cursor is the last postId from the previous page — not an offset number
+          - Returns nextCursor: null when no more posts exist
+          - Returns empty feed (not 404) for new users with no follows
+          - Response time target: under 100ms on warm cache
+
+          ## Technical Note
+          If the feed sorted set does not exist in Redis (new user or cache expired), fall back to a SQL query that joins Posts with Follows filtered by the user. Log this fallback — frequent fallbacks mean the fanout is not keeping up.
+
+          **Epic:** Feed Service | **Story Points:** 3"
+
+      - name: Create COMM-14
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-14: Implement post hydration with cache-aside pattern" \
+            --label "backend,redis" \
+            --body "## Description
+          Feed service turns a list of post IDs into full post objects using Redis first, SQL Server as fallback.
+
+          ## Acceptance Criteria
+          - For each post ID: GET community:post:{postId} from Redis
+          - On cache hit: deserialize and use directly
+          - On cache miss: SELECT from Posts + JOIN Users for author info in one query
+          - On cache miss: SET community:post:{postId} with 1 hour TTL before returning
+          - Batch SQL misses into a single WHERE Id IN (...) query — never query one by one in a loop
+          - Apply visibility filter after hydration — remove posts the requester cannot see
+          - Unit test: 20 post IDs, 15 in cache, 5 miss — assert only 1 SQL query fired for the 5 misses
+
+          ## Technical Note
+          The single biggest performance trap is N+1 queries — fetching each missing post individually. The WHERE Id IN (...) batch is non-negotiable.
+
+          **Epic:** Feed Service | **Story Points:** 3"
+
+      - name: Create COMM-15
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-15: Implement role-based visibility filtering in feed" \
+            --label "backend,security" \
+            --body "## Description
+          Ensure that users only see posts they are permitted to see based on their role, regardless of what is in their feed cache.
+
+          ## Acceptance Criteria
+          - Filter runs after hydration, before response is built
+          - PatientsOnly posts: visible to Patients and Doctors, not Caregivers or public
+          - DoctorOnly posts: visible to Doctors only
+          - CaregiverOnly posts: visible to Caregivers and Doctors only
+          - Public posts: visible to everyone
+          - A filtered-out post is silently dropped from the feed — no error, no gap indicator
+          - Write a test for every visibility × role combination (matrix test)
+
+          ## Technical Note
+          This filter must run server-side every time — never trust the client to enforce visibility. The Redis cache stores posts regardless of visibility because the same post may be visible to different users.
+
+          **Epic:** Feed Service | **Story Points:** 2"
+
+      - name: Create COMM-16
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-16: Set up SignalR hub for community notifications" \
+            --label "backend,signalr" \
+            --body "## Description
+          Create a SignalR hub that authenticated users connect to so the server can push live feed updates and notification badges.
+
+          ## Acceptance Criteria
+          - Create CommunityHub : Hub at route /hubs/community
+          - Require authentication — unauthenticated connections are rejected
+          - On connect: add user to a group named user:{userId}
+          - On disconnect: remove from group (SignalR handles this automatically)
+          - Hub supports method NewPostAvailable(string postId) — client listens for this
+          - Register hub in Program.cs with app.MapHub<CommunityHub>(\"/hubs/community\")
+          - Test: connect two clients, send to group, assert only correct client receives it
+
+          ## Technical Note
+          Do NOT push the full post over SignalR — only the postId. The client fetches the post via the REST API. This keeps the WebSocket payload tiny and avoids duplication.
+
+          **Epic:** Real-time | **Story Points:** 3"
+
+      - name: Create COMM-17
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-17: Integrate SignalR with FanoutWorker for live updates" \
+            --label "backend,signalr,worker" \
+            --body "## Description
+          After the FanoutWorker writes to Redis, it should notify online followers via SignalR so their feed badge updates instantly.
+
+          ## Acceptance Criteria
+          - Inject IHubContext<CommunityHub> into FanoutWorker
+          - After writing to Redis: call Clients.Group(\"user:{followerId}\").SendAsync(\"NewPostAvailable\", postId)
+          - Only send SignalR notification if follower received a Redis push (not the pull-based high-follower path)
+          - Failure to send SignalR must not fail or retry fanout — catch and log only
+          - SignalR notification is best-effort — offline users catch up via REST on next open
+
+          ## Technical Note
+          IHubContext is safe to inject into background services — it does not require an active HTTP context.
+
+          **Epic:** Real-time | **Story Points:** 2"
+
+      - name: Create COMM-18
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-18: Implement comments — create, list, delete" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can comment on a post to share support, ask questions, or provide medical feedback.
+
+          ## Acceptance Criteria
+          - POST /community/posts/{postId}/comments with body: content (max 1000 chars)
+          - GET /community/posts/{postId}/comments — paginated, cursor-based, oldest first
+          - DELETE /community/posts/{postId}/comments/{commentId} — author or MODERATOR only
+          - Comment author must have visibility access to the parent post — return 403 otherwise
+          - Post owner receives a NewComment notification via SignalR
+          - Soft delete comments — never hard delete
+          - Return comment count on Post responses (cached separately: community:post:{id}:comment-count)
+
+          ## Technical Note
+          Comment count is a hot read path — cache it as a separate Redis counter (INCR / DECR) rather than a COUNT(*) query every time.
+
+          **Epic:** Engagement | **Story Points:** 3"
+
+      - name: Create COMM-19
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-19: Implement reactions — add and remove" \
+            --label "backend,api" \
+            --body "## Description
+          As a user, I can react to a post with a heart or a support emoji so the author knows their post resonated.
+
+          ## Acceptance Criteria
+          - POST /community/posts/{postId}/reactions with body: type (Heart | Support | Strong)
+          - DELETE /community/posts/{postId}/reactions — removes the calling user reaction
+          - One reaction per user per post — 409 if already reacted
+          - Reaction counts per type returned on every post response
+          - User cannot react to a post they cannot see — 403
+          - Reaction counts cached in Redis: community:post:{id}:reactions as a Hash (type → count)
+          - HINCRBY on add, HDECRBY on remove — never query SQL for counts
+
+          ## Technical Note
+          Three reaction types max at launch. Adding more later is a schema migration plus a client release — keep it simple now.
+
+          **Epic:** Engagement | **Story Points:** 2"
+
+      - name: Create COMM-20
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "COMM-20: Integrate Azure Blob Storage for post image uploads" \
+            --label "backend,storage" \
+            --body "## Description
+          As a user, I can attach images to my post — a recovery photo, a scan result, or a lifestyle picture.
+
+          ## Acceptance Criteria
+          - POST /community/media/upload — accepts multipart/form-data, returns blob URL
+          - Accepted types: image/jpeg, image/png, image/webp — reject others with 415
+          - Max file size: 5MB — reject with 413
+          - Upload to Azure Blob container: rehla-community-media/{userId}/{guid}.{ext}
+          - Return the full CDN URL in the response — client includes this URL in CreatePost body
+          - Private blobs — generate 1 hour SAS token for retrieval, never expose the direct blob URL
+          - Add BlobServiceClient to DI using DefaultAzureCredential (no hardcoded keys)
+
+          ## Technical Note
+          Never store files in SQL Server as byte arrays. Always blob storage + URL reference. Also add a virus scan step before making the blob accessible — Azure Defender for Storage handles this automatically if enabled.
+
+          **Epic:** Media | **Story Points:** 3"
