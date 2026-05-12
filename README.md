@@ -129,7 +129,7 @@ dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release
 dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-scoped/ /p:CoverletOutputFormat=cobertura /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**" /p:Threshold=30 /p:ThresholdType=line /p:ThresholdStat=total
 
 # Run both sequentially (Windows cmd)
-dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-full/ /p:CoverletOutputFormat=cobertura && dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-scoped/ /p:CoverletOutputFormat=cobertura /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**" /p:Threshold=30 /p:ThresholdType=line /p:ThresholdStat=total
+dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-full/ /p:CoverletOutputFormat=cobertura && dotnet test BreastCancer.Tests/BreastCancer.Tests.csproj --configuration Release /p:CollectCoverage=true /p:CoverletOutput=./BreastCancer.Tests/TestResults/coverage-scoped/ /p:CoverletOutputFormat=cobertura /p:ExcludeByFile="**/Migrations/**%2c**/*.Designer.cs%2c**/Program.cs%2c**/Context/**%2c**/Templates/**" /p:Threshold=35 /p:ThresholdType=line /p:ThresholdStat=total
 ```
 
 Coverage file:

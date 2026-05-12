@@ -15,6 +15,8 @@ namespace BreastCancer.Repository.Repositories
         private ICaregiverRepository _caregiversRepository;
         private ITreatmentPlanRepository _treatmentPlansRepository;
         private IRefreshTokenRepository _refreshTokenRepository;
+        private IPatientDiagnosisRepository _patientDiagnosisRepository;
+
         public UnitOfWork(BreastCancerDB Context)
         {
             this.context = Context;
@@ -75,6 +77,18 @@ namespace BreastCancer.Repository.Repositories
                     _refreshTokenRepository = new RefreshTokenRepository(context);
                 }
                 return _refreshTokenRepository;
+            }
+        }
+
+        public IPatientDiagnosisRepository PatientDiagnosisRepository
+        {
+            get
+            {
+                if (_patientDiagnosisRepository == null)
+                {
+                    _patientDiagnosisRepository = new PatientDiagnosisRepository(context);
+                }
+                return _patientDiagnosisRepository;
             }
         }
 

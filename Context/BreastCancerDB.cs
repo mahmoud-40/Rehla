@@ -25,6 +25,7 @@ namespace BreastCancer.Context
         public virtual DbSet<NutritionPlanDay> NutritionPlanDays { get; set; }
         public virtual DbSet<NutritionMeal> NutritionMeals { get; set; }
         public virtual DbSet<MealLog> MealLogs { get; set; }
+        public virtual DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -157,6 +158,13 @@ namespace BreastCancer.Context
                 .WithMany(patient => patient.MealLogs)
                 .HasForeignKey(log => log.PatientId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<PatientDiagnosis>()
+                .HasOne(pd => pd.Patient)
+                .WithOne(p => p.Diagnosis)
+                .HasForeignKey<PatientDiagnosis>(pd => pd.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
 
             builder.Entity<NutritionMeal>()
                 .Property(meal => meal.Protein)
