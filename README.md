@@ -13,14 +13,22 @@ An AI-powered platform that predicts breast cancer recurrence and provides conti
 git clone https://github.com/mahmoud-40/BreastCancer.git
 cd BreastCancer
 
-# Start all services
-docker-compose up -d --build
+# Start the core services (Backend + Database)
+docker compose up -d --build
 
 # Verify containers are running
-docker-compose ps
+docker compose ps
 ```
 
 Wait ~30 seconds for SQL Server to initialize. Both containers should show `Up` status.
+
+### Running with AI Integration
+
+If you are running the separate AI chatbot stack locally and want the backend to connect to it, start the services using the AI override file:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build
+```
 
 ## Services
 
@@ -52,37 +60,40 @@ Use Swagger UI to test endpoints and authenticate.
 ## Docker Commands
 
 ```bash
-# Start services
-docker-compose up -d --build
+# Start core services standalone
+docker compose up -d --build
+
+# Start core services WITH AI integration
+docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build
 
 # Stop services
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Restart backend
-docker-compose up -d --build backend
+docker compose up -d --build backend
 
 # Reset everything (clears database)
-docker-compose down -v
-docker-compose up -d --build
+docker compose down -v
+docker compose up -d --build
 ```
 
 ## Troubleshooting
 
 **Container keeps restarting**
 ```bash
-docker-compose logs backend
+docker compose logs backend
 ```
 
 **Cannot connect to database**
-- Ensure SQL Server is healthy: `docker-compose ps`
+- Ensure SQL Server is healthy: `docker compose ps`
 - Wait 30 seconds after startup for initialization
 
 **Port conflict**
 ```bash
-docker-compose down
+docker compose down
 netstat -ano | findstr :8086
 ```
 
@@ -147,16 +158,17 @@ CI (GitHub Actions):
 
 ## Project Structure
 
-```
+```text
 BreastCancer/
-├── Controllers/          # API endpoints
-├── Models/               # Entity models
-├── Context/              # Database context
-├── Repository/           # Data access layer
-├── Service/              # Business logic
-├── BreastCancer.Tests/   # Unit and integration tests
-├── appsettings.json      # Local configuration
+├── Controllers/              # API endpoints
+├── Models/                   # Entity models
+├── Context/                  # Database context
+├── Repository/               # Data access layer
+├── Service/                  # Business logic
+├── BreastCancer.Tests/       # Unit and integration tests
+├── appsettings.json          # Local configuration
 ├── appsettings.Docker.json   # Docker configuration
-├── docker-compose.yml    # Docker services
+├── docker-compose.yml        # Base Docker infrastructure (standalone)
+├── docker-compose.ai.yml     # Optional AI network integration
 └── Dockerfile
 ```
