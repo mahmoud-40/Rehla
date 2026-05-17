@@ -337,8 +337,6 @@ namespace BreastCancer.Service.Implementation
                 else
                 {
                     _mapper.Map(request.Context, existingDiagnosis);
-
-                    _unitOfWork.PatientDiagnosisRepository.Update(existingDiagnosis);
                 }
 
                 await _unitOfWork.PatientDiagnosisRepository.SaveChangesAsync();
