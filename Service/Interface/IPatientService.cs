@@ -11,7 +11,7 @@ namespace BreastCancer.Service.Interface
         Task<PatientResponseDTO?> UpdatePatientAsync(string id, PatientUpdateDTO patientDto);
         Task DeletePatientAsync(string id);
         Task HardDeletePatientAsync(string id);
-        Task AddPatientMedicalDataAsync(AddMedicalDataRequestDTO request);
+        Task SavePatientMedicalDataAsync(AddMedicalDataRequestDTO request);
     }
 }
 
