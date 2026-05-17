@@ -1,0 +1,9 @@
+services:
+  backend:
+    networks:
+      - chatbot-network
+
+networks:
+  chatbot-network:
+    external: true
+    name: ai-driven-breast-cancer-recurrence-prediction-and-support-system_default
