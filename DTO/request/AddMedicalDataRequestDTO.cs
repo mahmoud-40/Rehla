@@ -57,13 +57,16 @@ namespace BreastCancer.DTO.request
         public required string Her2Status { get; set; }
 
         [JsonPropertyName("chemotherapy")]
-        public bool Chemotherapy { get; set; }
+        [Required(ErrorMessage = "Chemotherapy is required.")]
+        public bool? Chemotherapy { get; set; }
 
         [JsonPropertyName("hormone_therapy")]
-        public bool HormoneTherapy { get; set; }
+        [Required(ErrorMessage = "Hormone therapy is required.")]
+        public bool? HormoneTherapy { get; set; }
 
         [JsonPropertyName("radio_therapy")]
-        public bool RadioTherapy { get; set; }
+        [Required(ErrorMessage = "Radio therapy is required.")]
+        public bool? RadioTherapy { get; set; }
     }
 
     public sealed class NotEmptyGuidAttribute : ValidationAttribute
