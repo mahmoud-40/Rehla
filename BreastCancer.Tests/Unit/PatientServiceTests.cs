@@ -3,6 +3,7 @@ using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Implementation;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
@@ -212,6 +213,91 @@ public class PatientServiceTests
         sut.UserManager.Verify(x => x.DeleteAsync(It.Is<ApplicationUser>(u => u.Id == "patient-1")), Times.Once);
     }
 
+    [Fact]
+    public async Task AddPatientMedicalDataAsync_WhenDiagnosisMissing_CreatesDiagnosis()
+    {
+        var sut = CreateSut();
+        var patientId = Guid.NewGuid();
+        var patientIdText = patientId.ToString();
+        var context = CreatePatientContext();
+
+        sut.PatientRepository.Setup(x => x.GetByIdAsync(patientIdText)).ReturnsAsync(CreatePatientEntity(patientIdText));
+        sut.PatientDiagnosisRepository.Setup(x => x.GetByPatientIdAsync(patientIdText)).ReturnsAsync((PatientDiagnosis?)null);
+        sut.PatientDiagnosisRepository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+        var request = new AddMedicalDataRequestDTO
+        {
+            PatientId = patientId,
+            Context = context
+        };
+
+        await sut.Service.AddPatientMedicalDataAsync(request);
+
+        sut.Mapper.Verify(x => x.Map<PatientDiagnosis>(request.Context), Times.Once);
+        sut.PatientDiagnosisRepository.Verify(x => x.Add(It.Is<PatientDiagnosis>(d => d.UserId == patientIdText)), Times.Once);
+        sut.PatientDiagnosisRepository.Verify(x => x.Update(It.IsAny<PatientDiagnosis>()), Times.Never);
+        sut.PatientDiagnosisRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddPatientMedicalDataAsync_WhenDiagnosisExists_UpdatesDiagnosis()
+    {
+        var sut = CreateSut();
+        var patientId = Guid.NewGuid();
+        var patientIdText = patientId.ToString();
+        var context = CreatePatientContext();
+        var diagnosis = new PatientDiagnosis { UserId = patientIdText, AgeAtDiagnosis = 20 };
+
+        sut.PatientRepository.Setup(x => x.GetByIdAsync(patientIdText)).ReturnsAsync(CreatePatientEntity(patientIdText));
+        sut.PatientDiagnosisRepository.Setup(x => x.GetByPatientIdAsync(patientIdText)).ReturnsAsync(diagnosis);
+        sut.PatientDiagnosisRepository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+        await sut.Service.AddPatientMedicalDataAsync(new AddMedicalDataRequestDTO
+        {
+            PatientId = patientId,
+            Context = context
+        });
+
+        sut.Mapper.Verify(x => x.Map(context, diagnosis), Times.Once);
+        sut.PatientDiagnosisRepository.Verify(x => x.Update(diagnosis), Times.Once);
+        sut.PatientDiagnosisRepository.Verify(x => x.Add(It.IsAny<PatientDiagnosis>()), Times.Never);
+        sut.PatientDiagnosisRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddPatientMedicalDataAsync_WhenPatientMissing_ThrowsNotFoundException()
+    {
+        var sut = CreateSut();
+        var patientId = Guid.NewGuid();
+        var patientIdText = patientId.ToString();
+
+        sut.PatientRepository.Setup(x => x.GetByIdAsync(patientIdText)).ReturnsAsync((Patient?)null);
+
+        var act = async () => await sut.Service.AddPatientMedicalDataAsync(new AddMedicalDataRequestDTO
+        {
+            PatientId = patientId,
+            Context = CreatePatientContext()
+        });
+
+        await act.Should().ThrowAsync<PatientMedicalDataNotFoundException>()
+            .WithMessage($"Patient with ID '{patientIdText}' not found.");
+    }
+
+    private static PatientContext CreatePatientContext() => new()
+    {
+        AgeAtDiagnosis = 42,
+        CancerType = "Invasive Ductal Carcinoma",
+        CancerTypeDetailed = "Stage II",
+        TumorStage = "T2",
+        NeoplasmHistologicGrade = "G2",
+        ErStatus = "Positive",
+        PrStatus = "Positive",
+        Her2Status = "Negative",
+        Chemotherapy = true,
+        HormoneTherapy = true,
+        RadioTherapy = false
+    };
+
     private static Patient CreatePatientEntity(string id, string email = "patient@example.com", string firstName = "Pat", string lastName = "Ient", string? history = "History")
     {
         var user = new ApplicationUser
@@ -254,19 +340,36 @@ public class PatientServiceTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var patientRepository = new Mock<IPatientRepository>();
         var doctorRepository = new Mock<IDoctorRepository>();
+        var patientDiagnosisRepository = new Mock<IPatientDiagnosisRepository>();
         var logger = new Mock<ILogger<PatientService>>();
         var mapper = new Mock<IMapper>();
         mapper.Setup(x => x.Map<PatientResponseDTO>(It.IsAny<Patient>()))
             .Returns((Patient source) => MapPatient(source));
         mapper.Setup(x => x.Map<IEnumerable<PatientResponseDTO>>(It.IsAny<IEnumerable<Patient>>()))
             .Returns((IEnumerable<Patient> sources) => sources.Select(MapPatient).ToArray());
+        mapper.Setup(x => x.Map<PatientDiagnosis>(It.IsAny<PatientContext>()))
+            .Returns((PatientContext source) => new PatientDiagnosis
+            {
+                AgeAtDiagnosis = source.AgeAtDiagnosis,
+                CancerType = source.CancerType,
+                CancerTypeDetailed = source.CancerTypeDetailed,
+                TumorStage = source.TumorStage,
+                NeoplasmHistologicGrade = source.NeoplasmHistologicGrade,
+                ErStatus = source.ErStatus,
+                PrStatus = source.PrStatus,
+                Her2Status = source.Her2Status,
+                Chemotherapy = source.Chemotherapy,
+                HormoneTherapy = source.HormoneTherapy,
+                RadioTherapy = source.RadioTherapy
+            });
 
         unitOfWork.SetupGet(x => x.PatientsRepository).Returns(patientRepository.Object);
         unitOfWork.SetupGet(x => x.DoctorsRepository).Returns(doctorRepository.Object);
+        unitOfWork.SetupGet(x => x.PatientDiagnosisRepository).Returns(patientDiagnosisRepository.Object);
 
         var service = new PatientService(unitOfWork.Object, userManager.Object, logger.Object, mapper.Object);
 
-        return new SutContext(service, userManager, unitOfWork, patientRepository, doctorRepository);
+        return new SutContext(service, userManager, unitOfWork, patientRepository, doctorRepository, patientDiagnosisRepository, mapper);
     }
 
     private sealed record SutContext(
@@ -274,7 +377,9 @@ public class PatientServiceTests
         Mock<UserManager<ApplicationUser>> UserManager,
         Mock<IUnitOfWork> UnitOfWork,
         Mock<IPatientRepository> PatientRepository,
-        Mock<IDoctorRepository> DoctorRepository);
+        Mock<IDoctorRepository> DoctorRepository,
+        Mock<IPatientDiagnosisRepository> PatientDiagnosisRepository,
+        Mock<IMapper> Mapper);
 
     private static PatientResponseDTO MapPatient(Patient source) => new()
     {

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using BreastCancer.Controllers;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
@@ -123,6 +124,103 @@ public class PatientControllerIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
+    [Fact]
+    public async Task AddPatientMedicalData_ReturnsOk_WhenRequestIsValid()
+    {
+        var fake = new FakePatientService();
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        var response = await client.PostAsJsonAsync("/api/Patient/medical-data", new AddMedicalDataRequestDTO
+        {
+            PatientId = Guid.NewGuid(),
+            Context = new PatientContext
+            {
+                AgeAtDiagnosis = 42,
+                CancerType = "Invasive Ductal Carcinoma",
+                CancerTypeDetailed = "Stage II",
+                TumorStage = "T2",
+                NeoplasmHistologicGrade = "G2",
+                ErStatus = "Positive",
+                PrStatus = "Positive",
+                Her2Status = "Negative",
+                Chemotherapy = true,
+                HormoneTherapy = true,
+                RadioTherapy = false
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.MedicalDataRequestCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AddPatientMedicalData_ReturnsNotFound_WhenPatientMissing()
+    {
+        var fake = new FakePatientService
+        {
+            AddMedicalDataException = new PatientMedicalDataNotFoundException("Patient not found")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        var response = await client.PostAsJsonAsync("/api/Patient/medical-data", new AddMedicalDataRequestDTO
+        {
+            PatientId = Guid.NewGuid(),
+            Context = new PatientContext
+            {
+                AgeAtDiagnosis = 35,
+                CancerType = "Invasive Ductal Carcinoma",
+                CancerTypeDetailed = "Stage II",
+                TumorStage = "T2",
+                NeoplasmHistologicGrade = "G2",
+                ErStatus = "Positive",
+                PrStatus = "Positive",
+                Her2Status = "Negative",
+                Chemotherapy = true,
+                HormoneTherapy = false,
+                RadioTherapy = true
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AddPatientMedicalData_ReturnsBadRequest_WhenServiceRejectsRequest()
+    {
+        var fake = new FakePatientService
+        {
+            AddMedicalDataException = new ArgumentException("Patient context is required.")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = app.GetTestClient();
+
+        var response = await client.PostAsJsonAsync("/api/Patient/medical-data", new AddMedicalDataRequestDTO
+        {
+            PatientId = Guid.NewGuid(),
+            Context = new PatientContext
+            {
+                AgeAtDiagnosis = 30,
+                CancerType = "Invasive Ductal Carcinoma",
+                CancerTypeDetailed = "Stage II",
+                TumorStage = "T2",
+                NeoplasmHistologicGrade = "G2",
+                ErStatus = "Positive",
+                PrStatus = "Positive",
+                Her2Status = "Negative",
+                Chemotherapy = true,
+                HormoneTherapy = false,
+                RadioTherapy = true
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static async Task<WebApplication> BuildAppAsync(FakePatientService fakePatientService)
     {
         var builder = WebApplication.CreateBuilder();
@@ -145,6 +243,8 @@ public class PatientControllerIntegrationTests
         public IEnumerable<PatientResponseDTO> Patients { get; set; } = Array.Empty<PatientResponseDTO>();
         public PatientResponseDTO? CreatedPatient { get; set; }
         public PatientResponseDTO? UpdatedPatient { get; set; }
+        public Exception? AddMedicalDataException { get; set; }
+        public int MedicalDataRequestCount { get; private set; }
 
         public Task<PatientResponseDTO?> GetPatientByIdAsync(string id)
             => Task.FromResult(id == "missing" ? null : new PatientResponseDTO { Id = id, Email = "patient@example.com", FirstName = "Pat", LastName = "Ient" });
@@ -160,5 +260,15 @@ public class PatientControllerIntegrationTests
 
         public Task DeletePatientAsync(string id) => Task.CompletedTask;
         public Task HardDeletePatientAsync(string id) => Task.CompletedTask;
+        public Task AddPatientMedicalDataAsync(AddMedicalDataRequestDTO request)
+        {
+            if (AddMedicalDataException != null)
+            {
+                throw AddMedicalDataException;
+            }
+
+            MedicalDataRequestCount++;
+            return Task.CompletedTask;
+        }
     }
 }
