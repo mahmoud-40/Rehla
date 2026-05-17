@@ -285,8 +285,8 @@ namespace BreastCancer.Controllers
 
         [HttpPost("medical-data")]
         [SwaggerOperation(
-            Summary = "Adds medical context to a patient",
-            Description = "Accepts patient ID and cancer-related context to update the patient's medical records."
+            Summary = "Saves medical context for a patient",
+            Description = "Accepts patient ID and cancer-related context to save the patient's medical records by adding new data or updating existing data."
         )]
         [SwaggerResponse(StatusCodes.Status200OK, "Patient medical data saved successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid medical data request")]
