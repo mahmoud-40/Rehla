@@ -211,6 +211,10 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy))
                 .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy));
 
+            CreateMap<PatientContext, PatientDiagnosis>()
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore());
+
             #endregion
         }
     }

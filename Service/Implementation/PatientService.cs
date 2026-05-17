@@ -3,6 +3,7 @@ using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -300,6 +301,52 @@ namespace BreastCancer.Service.Implementation
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error hard deleting patient with ID: {PatientId}", id);
+                throw;
+            }
+        }
+
+        public async Task AddPatientMedicalDataAsync(AddMedicalDataRequestDTO request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    throw new ArgumentNullException(nameof(request), "Request body is required.");
+                }
+
+                if (request.Context == null)
+                {
+                    throw new ArgumentException("Patient context is required.", nameof(request.Context));
+                }
+
+                var patientId = request.PatientId.ToString();
+                var patient = await _unitOfWork.PatientsRepository.GetByIdAsync(patientId);
+                if (patient == null)
+                {
+                    throw new PatientMedicalDataNotFoundException($"Patient with ID '{patientId}' not found.");
+                }
+
+                var existingDiagnosis = await _unitOfWork.PatientDiagnosisRepository.GetByPatientIdAsync(patientId);
+                if (existingDiagnosis == null)
+                {
+                    var diagnosis = _mapper.Map<PatientDiagnosis>(request.Context);
+                    diagnosis.UserId = patientId;
+
+                    _unitOfWork.PatientDiagnosisRepository.Add(diagnosis);
+                }
+                else
+                {
+                    _mapper.Map(request.Context, existingDiagnosis);
+
+                    _unitOfWork.PatientDiagnosisRepository.Update(existingDiagnosis);
+                }
+
+                await _unitOfWork.PatientDiagnosisRepository.SaveChangesAsync();
+                _logger.LogInformation("Patient medical data saved successfully for ID: {PatientId}", patientId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving patient medical data for PatientId: {PatientId}", request?.PatientId);
                 throw;
             }
         }

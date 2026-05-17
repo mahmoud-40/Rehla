@@ -1,5 +1,6 @@
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
+using BreastCancer.Service.Exceptions;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -279,6 +280,43 @@ namespace BreastCancer.Controllers
             {
                 _logger.LogError(ex, "Error hard deleting patient with UserId: {UserId}", id);
                 return BadRequest(new { message = "An error occurred while hard deleting the patient." });
+            }
+        }
+
+        [HttpPost("medical-data")]
+        [SwaggerOperation(
+            Summary = "Adds medical context to a patient",
+            Description = "Accepts patient ID and cancer-related context to update the patient's medical records."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Patient medical data saved successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid medical data request")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Patient not found")]
+        public async Task<IActionResult> AddPatientMedicalData([FromBody] AddMedicalDataRequestDTO request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                await _patientService.AddPatientMedicalDataAsync(request);
+                return Ok(new { message = "Patient medical data saved successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid request while adding medical data for PatientId: {PatientId}", request?.PatientId);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (PatientMedicalDataNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Patient not found while adding medical data for PatientId: {PatientId}", request?.PatientId);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding patient medical data for PatientId: {PatientId}", request?.PatientId);
+                return BadRequest(new { message = "An error occurred while saving patient medical data." });
             }
         }
     }
