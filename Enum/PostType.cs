@@ -2,8 +2,10 @@ namespace BreastCancer.Enum
 {
     public enum PostType
     {
-        General,
+        Story,
         Question,
+        MilestoneShare,
+        DoctorUpdate,
         Support,
         Resource
     }

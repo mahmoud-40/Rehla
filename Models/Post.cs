@@ -16,7 +16,7 @@ namespace BreastCancer.Models
         [Required]
         public string Content { get; set; } = null!;
 
-        public PostType Type { get; set; } = PostType.General;
+        public PostType Type { get; set; } = PostType.Story;
         public PostVisibility Visibility { get; set; } = PostVisibility.Public;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
