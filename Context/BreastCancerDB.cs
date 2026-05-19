@@ -26,6 +26,10 @@ namespace BreastCancer.Context
         public virtual DbSet<NutritionMeal> NutritionMeals { get; set; }
         public virtual DbSet<MealLog> MealLogs { get; set; }
         public virtual DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
+        public virtual DbSet<Post> Posts { get; set; }
+        public virtual DbSet<Comment> Comments { get; set; }
+        public virtual DbSet<Reaction> Reactions { get; set; }
+        public virtual DbSet<Follow> Follows { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -177,6 +181,85 @@ namespace BreastCancer.Context
             builder.Entity<NutritionMeal>()
                 .Property(meal => meal.Fat)
                 .HasPrecision(10, 2);
+
+            builder.Entity<Post>()
+                .ToTable("Posts", "community")
+                .HasQueryFilter(post => !post.IsDeleted);
+
+            builder.Entity<Post>()
+                .Property(post => post.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Post>()
+                .Property(post => post.Visibility)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Post>()
+                .HasOne(post => post.Author)
+                .WithMany()
+                .HasForeignKey(post => post.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Comment>()
+                .ToTable("Comments", "community");
+
+            builder.Entity<Comment>()
+                .HasQueryFilter(comment => !comment.Post.IsDeleted);
+
+            builder.Entity<Comment>()
+                .HasOne(comment => comment.Post)
+                .WithMany(post => post.Comments)
+                .HasForeignKey(comment => comment.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Comment>()
+                .HasOne(comment => comment.Author)
+                .WithMany()
+                .HasForeignKey(comment => comment.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Reaction>()
+                .ToTable("Reactions", "community");
+
+            builder.Entity<Reaction>()
+                .HasQueryFilter(reaction => !reaction.Post.IsDeleted);
+
+            builder.Entity<Reaction>()
+                .Property(reaction => reaction.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Reaction>()
+                .HasOne(reaction => reaction.Post)
+                .WithMany(post => post.Reactions)
+                .HasForeignKey(reaction => reaction.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Reaction>()
+                .HasOne(reaction => reaction.User)
+                .WithMany()
+                .HasForeignKey(reaction => reaction.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Follow>()
+                .ToTable("Follows", "community");
+
+            builder.Entity<Follow>()
+                .HasKey(follow => new { follow.FollowerId, follow.FollowingId });
+
+            builder.Entity<Follow>()
+                .HasOne(follow => follow.Follower)
+                .WithMany()
+                .HasForeignKey(follow => follow.FollowerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Follow>()
+                .HasOne(follow => follow.Following)
+                .WithMany()
+                .HasForeignKey(follow => follow.FollowingId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
 
     }
