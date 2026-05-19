@@ -4,6 +4,7 @@ using BreastCancer.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BreastCancer.Migrations
 {
     [DbContext(typeof(BreastCancerDB))]
-    partial class BreastCancerDBModelSnapshot : ModelSnapshot
+    [Migration("20260519201312_AddCommunityTables")]
+    partial class AddCommunityTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,28 +58,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
-                            ConcurrencyStamp = "4101b4e7-0fa2-49e2-a709-044af3b2b755",
+                            ConcurrencyStamp = "28fdf492-3ed6-4a8c-99d0-09404606ad8c",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
-                            ConcurrencyStamp = "0c7139a3-e671-4dc4-97f0-83eb70b00889",
+                            ConcurrencyStamp = "23439ec3-9614-4984-8cc8-ed2a52da65b0",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
-                            ConcurrencyStamp = "ba267127-0da5-44a5-9297-0d0eb7e4e966",
+                            ConcurrencyStamp = "d00efb97-1c53-425d-a96b-217679bee103",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
-                            ConcurrencyStamp = "802b2dc9-0300-493e-b1c3-0bf32df0e319",
+                            ConcurrencyStamp = "577a6881-0566-4837-9403-085496f7a72d",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
