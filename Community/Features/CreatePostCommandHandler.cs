@@ -3,7 +3,7 @@ using MediatR;
 
 namespace BreastCancer.Community.Features;
 
-public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, Unit>
+public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, int>
 {
     private readonly IPublisher _publisher;
 
@@ -12,9 +12,10 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
         _publisher = publisher;
     }
 
-    public async Task<Unit> Handle(CreatePostCommand request, CancellationToken cancellationToken)
+    public async Task<int> Handle(CreatePostCommand request, CancellationToken cancellationToken)
     {
-        await _publisher.Publish(new PostCreatedEvent(request.PostId, request.AuthorId), cancellationToken);
-        return Unit.Value;
+        const int postId = 0; // TODO: Implement actual post creation logic and generate a real post ID
+        await _publisher.Publish(new PostCreatedEvent(postId, request.AuthorId), cancellationToken);
+        return postId;
     }
 }

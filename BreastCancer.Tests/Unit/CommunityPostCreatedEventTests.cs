@@ -23,10 +23,10 @@ public sealed class CommunityPostCreatedEventTests
         var provider = services.BuildServiceProvider();
         var mediator = provider.GetRequiredService<IMediator>();
 
-        await mediator.Send(new CreatePostCommand(42, "author-1"));
+        var createdPostId = await mediator.Send(new CreatePostCommand("author-1"));
 
         recorder.Events.Should().ContainSingle();
-        recorder.Events[0].PostId.Should().Be(42);
+        recorder.Events[0].PostId.Should().Be(createdPostId);
         recorder.Events[0].AuthorId.Should().Be("author-1");
     }
 
