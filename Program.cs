@@ -2,6 +2,7 @@
 using BreastCancer.Context;
 using BreastCancer.Mapping;
 using BreastCancer.Models;
+using BreastCancer.Community;
 using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
@@ -91,6 +92,7 @@ namespace BreastCancer
             {
                 cfg.AddProfile<MappingProfile>();
             });
+            builder.Services.AddCommunityModule();
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
