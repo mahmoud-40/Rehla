@@ -2,6 +2,7 @@
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features;
 using BreastCancer.Community.Security;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -41,6 +42,15 @@ namespace BreastCancer.Community.Controllers
             {
                 var post = await mediator.Send(new CreatePostCommand(createPostDTO, userId, roles));
                 return StatusCode(StatusCodes.Status201Created, post);
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
             }
             catch (PostAccessForbiddenException ex)
             {

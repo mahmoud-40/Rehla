@@ -25,6 +25,8 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
     public async Task<PostDTO> Handle(CreatePostCommand request, CancellationToken cancellationToken)
     {
         await using var transaction = await _unitOfWork.BeginTransactionAsync();
+        var committed = false;
+        Post post;
         try
         {
             if (request.Post.Type == PostType.DoctorUpdate
@@ -33,7 +35,7 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
                 throw new PostAccessForbiddenException("Only doctors can create DoctorUpdate posts.");
             }
 
-            var post = _mapper.Map<Models.Post>(request.Post);
+            post = _mapper.Map<Post>(request.Post);
             post.AuthorId = request.AuthorId;
             post.MediaUrls = request.Post.MediaUrls ?? new List<string>();
 
@@ -42,15 +44,19 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             await _unitOfWork.SaveAsync();
 
             await transaction.CommitAsync();
-
-            await _publisher.Publish(new PostCreatedEvent(post.Id, post.AuthorId, post.Visibility), cancellationToken);
-
-            return _mapper.Map<PostDTO>(post);
+            committed = true;
         }
         catch
         {
-            await transaction.RollbackAsync();
+            if (!committed)
+            {
+                await transaction.RollbackAsync();
+            }
             throw;
         }
+
+        await _publisher.Publish(new PostCreatedEvent(post.Id, post.AuthorId, post.Visibility), cancellationToken);
+
+        return _mapper.Map<PostDTO>(post);
     }
 }
