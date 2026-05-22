@@ -58,5 +58,77 @@ namespace BreastCancer.Community.Controllers
             }
         }
 
+        [HttpPost("users/{userId}/follow")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Follow a user")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User followed successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Already following the user")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        public async Task<IActionResult> FollowUser([FromRoute] string userId)
+        {
+            var followerId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(followerId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+            try
+            {
+                await mediator.Send(new FollowUserCommand(followerId, userId));
+                return Ok(new { message = "User followed successfully" });
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
+            }
+            catch (UserNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (AlreadyFollowingException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("users/{userId}/follow")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Unfollow a user")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User unfollowed successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Follow relationship not found")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        public async Task<IActionResult> UnfollowUser([FromRoute] string userId)
+        {
+            var followerId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(followerId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+            try
+            {
+                await mediator.Send(new UnfollowUserCommand(followerId, userId));
+                return Ok(new { message = "User unfollowed successfully" });
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
+            }
+            catch (UserNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
     }
 }
