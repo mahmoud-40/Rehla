@@ -18,6 +18,7 @@ public static class CommunityModule
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<IPostCreatedEventSink, NoOpPostCreatedEventSink>();
+        services.AddScoped<IFollowCreatedEventSink, NoOpFollowCreatedEventSink>();
 
         return services;
     }
