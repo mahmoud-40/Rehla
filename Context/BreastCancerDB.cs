@@ -197,6 +197,14 @@ namespace BreastCancer.Context
                 .HasMaxLength(50);
 
             builder.Entity<Post>()
+                .Property(post => post.MediaUrls)
+                .HasConversion(
+                    urls => System.Text.Json.JsonSerializer.Serialize(urls, (System.Text.Json.JsonSerializerOptions?)null),
+                    json => string.IsNullOrWhiteSpace(json)
+                        ? new List<string>()
+                        : System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>());
+
+            builder.Entity<Post>()
                 .HasOne(post => post.Author)
                 .WithMany()
                 .HasForeignKey(post => post.AuthorId)

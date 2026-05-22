@@ -1,4 +1,6 @@
 using AutoMapper;
+using BreastCancer.Community.DTO.request;
+using BreastCancer.Community.DTO.response;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -214,6 +216,25 @@ namespace BreastCancer.Mapping
             CreateMap<PatientContext, PatientDiagnosis>()
                 .ForMember(dest => dest.UserId, opt => opt.Ignore())
                 .ForMember(dest => dest.Patient, opt => opt.Ignore());
+
+            #endregion
+
+            #region Community Mapping
+
+            CreateMap<CreatePostDTO, Post>()
+                .ForMember(dest => dest.AuthorId, opt => opt.Ignore())
+                .ForMember(dest => dest.MediaUrls, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.Author, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.Ignore())
+                .ForMember(dest => dest.Reactions, opt => opt.Ignore());
+
+            CreateMap<Post, PostDTO>()
+                .ForMember(dest => dest.PostType, opt => opt.MapFrom(src => src.Type))
+                .ForMember(dest => dest.PostVisibility, opt => opt.MapFrom(src => src.Visibility))
+                .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls));
 
             #endregion
         }
