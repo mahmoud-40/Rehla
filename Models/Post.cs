@@ -18,6 +18,7 @@ namespace BreastCancer.Models
 
         public PostType Type { get; set; } = PostType.Story;
         public PostVisibility Visibility { get; set; } = PostVisibility.Public;
+        public List<string> MediaUrls { get; set; } = new();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
