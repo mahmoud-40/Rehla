@@ -10,6 +10,7 @@ using BreastCancer.Repository.Interface;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -23,7 +24,16 @@ public sealed class CommunityPostCreatedEventTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddCommunityModule();
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Redis:ConnectionString", "localhost:6379" },
+                { "Redis:DefaultTTLSeconds", "3600" }
+            })
+            .Build();
+
+        services.AddCommunityModule(configuration);
 
         var mapper = new Mock<IMapper>();
         mapper.Setup(m => m.Map<Post>(It.IsAny<CreatePostDTO>()))
