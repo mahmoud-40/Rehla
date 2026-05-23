@@ -92,7 +92,7 @@ namespace BreastCancer
             {
                 cfg.AddProfile<MappingProfile>();
             });
-            builder.Services.AddCommunityModule();
+            builder.Services.AddCommunityModule(builder.Configuration);
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
