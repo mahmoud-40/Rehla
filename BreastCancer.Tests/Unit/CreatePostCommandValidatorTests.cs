@@ -1,5 +1,5 @@
 using BreastCancer.Community.DTO.request;
-using BreastCancer.Community.Features;
+using BreastCancer.Community.Features.CreatePost;
 using BreastCancer.Enum;
 using FluentAssertions;
 using Xunit;

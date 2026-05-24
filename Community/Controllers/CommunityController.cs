@@ -1,6 +1,9 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features;
+using BreastCancer.Community.Features.CreatePost;
+using BreastCancer.Community.Features.FollowUser;
+using BreastCancer.Community.Features.UnfollowUser;
 using BreastCancer.Community.Security;
 using FluentValidation;
 using MediatR;

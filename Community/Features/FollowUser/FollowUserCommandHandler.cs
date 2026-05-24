@@ -1,10 +1,11 @@
 ﻿using BreastCancer.Community.Events;
+using BreastCancer.Community.Events.Models;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using MediatR;
 
-namespace BreastCancer.Community.Features
+namespace BreastCancer.Community.Features.FollowUser
 {
     public sealed class FollowUserCommandHandler : IRequestHandler<FollowUserCommand, Unit>
     {

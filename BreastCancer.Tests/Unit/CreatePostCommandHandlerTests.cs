@@ -1,16 +1,16 @@
 using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features;
 using BreastCancer.Enum;
 using AutoMapper;
 using BreastCancer.Community.DTO.response;
-using BreastCancer.Community.Events;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using FluentAssertions;
 using MediatR;
 using Moq;
 using Xunit;
+using BreastCancer.Community.Events.Models;
+using BreastCancer.Community.Features.CreatePost;
 
 namespace BreastCancer.Tests.Unit;
 

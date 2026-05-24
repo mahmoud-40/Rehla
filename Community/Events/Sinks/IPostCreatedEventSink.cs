@@ -1,4 +1,6 @@
-namespace BreastCancer.Community.Events;
+using BreastCancer.Community.Events.Models;
+
+namespace BreastCancer.Community.Events.Sinks;
 
 public interface IPostCreatedEventSink
 {
