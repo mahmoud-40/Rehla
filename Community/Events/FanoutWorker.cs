@@ -71,7 +71,7 @@ public sealed class FanoutWorker : BackgroundService
 
             if (followerIds.Count == 0)
             {
-                _logger.LogDebug("No followers found for author {AuthorId} when processing fanout job for post {PostId}.", job.AuthorId, job.PostId);
+                _logger.LogInformation("No followers found for author {AuthorId} when processing fanout job for post {PostId}.", job.AuthorId, job.PostId);
                 return;
             }
 
@@ -94,7 +94,7 @@ public sealed class FanoutWorker : BackgroundService
             batch.Execute();
             await Task.WhenAll(tasks);
 
-            _logger.LogDebug(
+            _logger.LogInformation(
                 "Fanout completed for post {PostId}. Author {AuthorId}, followers {FollowerCount}.",
                 job.PostId,
                 job.AuthorId,
