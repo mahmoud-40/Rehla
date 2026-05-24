@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System.Threading.Channels;
 
 namespace BreastCancer.Community;
 
@@ -37,6 +38,14 @@ public static class CommunityModule
         });
 
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        services.AddSingleton(_ => Channel.CreateBounded<FanoutJob>(new BoundedChannelOptions(5000)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false
+        }));
+        services.AddHostedService<FanoutWorker>();
 
         services.AddMediatR(assembly);
         services.AddValidatorsFromAssembly(assembly);
