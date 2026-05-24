@@ -1,4 +1,4 @@
-version: "3.8"
+# version: "3.8"
 
 services:
   sql-server:
@@ -22,6 +22,23 @@ services:
     networks:
       - breast-cancer-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: breast-cancer-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - breast-cancer-network
+
   backend:
     build:
       context: .
@@ -35,6 +52,8 @@ services:
     depends_on:
       sql-server:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
@@ -43,6 +62,7 @@ services:
 
 volumes:
   sqlserver-data:
+  redis_data:
 
 networks:
   breast-cancer-network:

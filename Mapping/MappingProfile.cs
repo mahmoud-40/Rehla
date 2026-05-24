@@ -1,4 +1,6 @@
 using AutoMapper;
+using BreastCancer.Community.DTO.request;
+using BreastCancer.Community.DTO.response;
 using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Models;
@@ -189,6 +191,50 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            #endregion
+        
+            #region Chatbot Mapping
+
+            CreateMap<ChatbotAskDTO, ChatbotRequestDTO>()
+                .ForMember(dest => dest.Question, opt => opt.MapFrom(src => src.Question))
+                .ForMember(dest => dest.PatientContext, opt => opt.Ignore());
+
+            CreateMap<PatientDiagnosis, PatientChatbotContextDTO>()
+                .ForMember(dest => dest.AgeAtDiagnosis, opt => opt.MapFrom(src => src.AgeAtDiagnosis))
+                .ForMember(dest => dest.CancerType, opt => opt.MapFrom(src => src.CancerType ?? string.Empty))
+                .ForMember(dest => dest.CancerTypeDetailed, opt => opt.MapFrom(src => src.CancerTypeDetailed ?? string.Empty))
+                .ForMember(dest => dest.TumorStage, opt => opt.MapFrom(src => src.TumorStage ?? string.Empty))
+                .ForMember(dest => dest.NeoplasmHistologicGrade, opt => opt.MapFrom(src => src.NeoplasmHistologicGrade ?? string.Empty))
+                .ForMember(dest => dest.ErStatus, opt => opt.MapFrom(src => src.ErStatus ?? string.Empty))
+                .ForMember(dest => dest.PrStatus, opt => opt.MapFrom(src => src.PrStatus ?? string.Empty))
+                .ForMember(dest => dest.Her2Status, opt => opt.MapFrom(src => src.Her2Status ?? string.Empty))
+                .ForMember(dest => dest.Chemotherapy, opt => opt.MapFrom(src => src.Chemotherapy))
+                .ForMember(dest => dest.HormoneTherapy, opt => opt.MapFrom(src => src.HormoneTherapy))
+                .ForMember(dest => dest.RadioTherapy, opt => opt.MapFrom(src => src.RadioTherapy));
+
+            CreateMap<PatientContext, PatientDiagnosis>()
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.Patient, opt => opt.Ignore());
+
+            #endregion
+
+            #region Community Mapping
+
+            CreateMap<CreatePostDTO, Post>()
+                .ForMember(dest => dest.AuthorId, opt => opt.Ignore())
+                .ForMember(dest => dest.MediaUrls, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.Author, opt => opt.Ignore())
+                .ForMember(dest => dest.Comments, opt => opt.Ignore())
+                .ForMember(dest => dest.Reactions, opt => opt.Ignore());
+
+            CreateMap<Post, PostDTO>()
+                .ForMember(dest => dest.PostType, opt => opt.MapFrom(src => src.Type))
+                .ForMember(dest => dest.PostVisibility, opt => opt.MapFrom(src => src.Visibility))
+                .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls));
 
             #endregion
         }

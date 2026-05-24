@@ -2,6 +2,7 @@
 using BreastCancer.Context;
 using BreastCancer.Mapping;
 using BreastCancer.Models;
+using BreastCancer.Community;
 using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
@@ -86,10 +87,12 @@ namespace BreastCancer
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddScoped<ITreatmentPlanService, TreatmentPlanService>();
+            builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();
             });
+            builder.Services.AddCommunityModule(builder.Configuration);
             // Add CORS policy
             builder.Services.AddCors(options =>
             {

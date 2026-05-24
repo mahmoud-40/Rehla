@@ -1,15 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using BreastCancer.Enum;
 
 namespace BreastCancer.DTO.request
 {
     public class CaregiverRegisterDTO : BaseRegisterDTO
     {
-        public RelationshipType? RelationshipType { get; set; }
-        [Required]
-        [EmailAddress]
-        public string PatientEmail { get; set; }
-        public override string Role => "Caregiver";
+        [Required(ErrorMessage = "Relationship type is required.")]
+        [MaxLength(50, ErrorMessage = "Relationship type cannot exceed 50 characters.")]
+        public string RelationshipType { get; set; }
 
+        [Required(ErrorMessage = "Patient email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid patient email format.")]
+        public string PatientEmail { get; set; }
+
+        public override string Role => "Caregiver";
     }
 }

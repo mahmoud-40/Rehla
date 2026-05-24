@@ -21,72 +21,81 @@ namespace BreastCancer.Context
         public virtual DbSet<Medicine> Medicines { get; set; }
         public virtual DbSet<TreatmentPlanHistory> TreatmentPlanHistories { get; set; }
         public virtual DbSet<TreatmentPlanMedia> TreatmentPlanMedias { get; set; }
+        public virtual DbSet<NutritionPlan> NutritionPlans { get; set; }
+        public virtual DbSet<NutritionPlanDay> NutritionPlanDays { get; set; }
+        public virtual DbSet<NutritionMeal> NutritionMeals { get; set; }
+        public virtual DbSet<MealLog> MealLogs { get; set; }
+        public virtual DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
+        public virtual DbSet<Post> Posts { get; set; }
+        public virtual DbSet<Comment> Comments { get; set; }
+        public virtual DbSet<Reaction> Reactions { get; set; }
+        public virtual DbSet<Follow> Follows { get; set; }
 
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(builder);
 
-            modelBuilder.Entity<ApplicationUser>()
+            builder.Entity<ApplicationUser>()
                 .HasOne(u => u.Caregiver)
                 .WithOne(c => c.User)
                 .HasForeignKey<Caregiver>(c => c.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<ApplicationUser>()
+            builder.Entity<ApplicationUser>()
                 .HasOne(u => u.Doctor)
                 .WithOne(d => d.User)
                 .HasForeignKey<Doctor>(d => d.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<ApplicationUser>()
+            builder.Entity<ApplicationUser>()
                 .HasOne(u => u.Patient)
                 .WithOne(p => p.User)
                 .HasForeignKey<Patient>(p => p.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Patient>()
+            builder.Entity<Patient>()
                 .HasOne(p => p.Doctor)
                 .WithMany(d => d.Patients)
                 .HasForeignKey(p => p.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Caregiver>()
+            builder.Entity<Caregiver>()
                 .HasOne(c => c.Patient)
                 .WithMany(p => p.Caregivers)
                 .HasForeignKey(c => c.PatientId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Caregiver>()
+            builder.Entity<Caregiver>()
                 .Property(c => c.RelationshipType)
                 .HasConversion<string>()
                 .HasMaxLength(50);
 
-            modelBuilder.Entity<Patient>()
+            builder.Entity<Patient>()
                 .HasKey(p => p.UserId);
 
-            modelBuilder.Entity<Doctor>()
+            builder.Entity<Doctor>()
                 .HasKey(d => d.UserId);
 
-            modelBuilder.Entity<Caregiver>()
+            builder.Entity<Caregiver>()
                 .HasKey(c => c.UserId);
 
-            modelBuilder.Entity<ApplicationUser>()
+            builder.Entity<ApplicationUser>()
                .Property(u => u.Gender)
                .HasConversion<string>()
                .HasMaxLength(10);
 
-            modelBuilder.Entity<Doctor>()
+            builder.Entity<Doctor>()
                 .HasIndex(d => d.LicenseNumber)
                 .IsUnique()
                 .HasFilter("[LicenseNumber] IS NOT NULL");
 
 
-            modelBuilder.Entity<ApplicationUser>()
+            builder.Entity<ApplicationUser>()
                 .Property(u => u.DateOfBirth)
                 .IsRequired(false);
 
-            modelBuilder.Entity<ApplicationRole>().HasData(
+            builder.Entity<ApplicationRole>().HasData(
                 new ApplicationRole { Id = "1", Name = "Admin", NormalizedName = "ADMIN" },
                 new ApplicationRole { Id = "2", Name = "Patient", NormalizedName = "PATIENT" },
                 new ApplicationRole { Id = "3", Name = "Doctor", NormalizedName = "DOCTOR" },
@@ -94,29 +103,171 @@ namespace BreastCancer.Context
             );
 
             // TreatmentPlan relationships
-            modelBuilder.Entity<TreatmentPlan>()
+            builder.Entity<TreatmentPlan>()
                 .HasOne(tp => tp.Patient)
                 .WithOne(p => p.TreatmentPlan)
                 .HasForeignKey<TreatmentPlan>(tp => tp.PatientId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<TreatmentPlan>()
+            builder.Entity<TreatmentPlan>()
                 .HasOne(tp => tp.Doctor)
                 .WithMany()
                 .HasForeignKey(tp => tp.DoctorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<TreatmentPlan>()
+            builder.Entity<TreatmentPlan>()
                 .HasMany(tp => tp.Medicines)
                 .WithOne(m => m.TreatmentPlan)
                 .HasForeignKey(m => m.TreatmentPlanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Medicine>()
+            builder.Entity<Medicine>()
                 .HasOne(m => m.TreatmentPlan)
                 .WithMany(tp => tp.Medicines)
                 .HasForeignKey(m => m.TreatmentPlanId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NutritionPlan>()
+                .HasOne(np => np.Patient)
+                .WithMany(p => p.NutritionPlans)
+                .HasForeignKey(np => np.PatientId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<NutritionPlan>()
+                .HasOne(np => np.Doctor)
+                .WithMany(d => d.NutritionPlans)
+                .HasForeignKey(np => np.DoctorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<NutritionPlan>()
+                .HasMany(np => np.Days)
+                .WithOne(day => day.Plan)
+                .HasForeignKey(day => day.PlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NutritionPlanDay>()
+                .HasMany(day => day.Meals)
+                .WithOne(meal => meal.Day)
+                .HasForeignKey(meal => meal.DayId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<NutritionMeal>()
+                .HasMany(meal => meal.MealLogs)
+                .WithOne(log => log.Meal)
+                .HasForeignKey(log => log.MealId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<MealLog>()
+                .HasOne(log => log.Patient)
+                .WithMany(patient => patient.MealLogs)
+                .HasForeignKey(log => log.PatientId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<PatientDiagnosis>()
+                .HasOne(pd => pd.Patient)
+                .WithOne(p => p.Diagnosis)
+                .HasForeignKey<PatientDiagnosis>(pd => pd.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+
+            builder.Entity<NutritionMeal>()
+                .Property(meal => meal.Protein)
+                .HasPrecision(10, 2);
+
+            builder.Entity<NutritionMeal>()
+                .Property(meal => meal.Carbs)
+                .HasPrecision(10, 2);
+
+            builder.Entity<NutritionMeal>()
+                .Property(meal => meal.Fat)
+                .HasPrecision(10, 2);
+
+            builder.Entity<Post>()
+                .ToTable("Posts", "community")
+                .HasQueryFilter(post => !post.IsDeleted);
+
+            builder.Entity<Post>()
+                .Property(post => post.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Post>()
+                .Property(post => post.Visibility)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Post>()
+                .Property(post => post.MediaUrls)
+                .HasConversion(
+                    urls => System.Text.Json.JsonSerializer.Serialize(urls, (System.Text.Json.JsonSerializerOptions?)null),
+                    json => string.IsNullOrWhiteSpace(json)
+                        ? new List<string>()
+                        : System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>());
+
+            builder.Entity<Post>()
+                .HasOne(post => post.Author)
+                .WithMany()
+                .HasForeignKey(post => post.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Comment>()
+                .ToTable("Comments", "community");
+
+            builder.Entity<Comment>()
+                .HasQueryFilter(comment => !comment.Post.IsDeleted);
+
+            builder.Entity<Comment>()
+                .HasOne(comment => comment.Post)
+                .WithMany(post => post.Comments)
+                .HasForeignKey(comment => comment.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Comment>()
+                .HasOne(comment => comment.Author)
+                .WithMany()
+                .HasForeignKey(comment => comment.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Reaction>()
+                .ToTable("Reactions", "community");
+
+            builder.Entity<Reaction>()
+                .HasQueryFilter(reaction => !reaction.Post.IsDeleted);
+
+            builder.Entity<Reaction>()
+                .Property(reaction => reaction.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Reaction>()
+                .HasOne(reaction => reaction.Post)
+                .WithMany(post => post.Reactions)
+                .HasForeignKey(reaction => reaction.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Reaction>()
+                .HasOne(reaction => reaction.User)
+                .WithMany()
+                .HasForeignKey(reaction => reaction.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Follow>()
+                .ToTable("Follows", "community");
+
+            builder.Entity<Follow>()
+                .HasKey(follow => new { follow.FollowerId, follow.FollowingId });
+
+            builder.Entity<Follow>()
+                .HasOne(follow => follow.Follower)
+                .WithMany()
+                .HasForeignKey(follow => follow.FollowerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Follow>()
+                .HasOne(follow => follow.Following)
+                .WithMany()
+                .HasForeignKey(follow => follow.FollowingId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
 
     }

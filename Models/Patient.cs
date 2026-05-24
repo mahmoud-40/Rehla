@@ -13,9 +13,12 @@ namespace BreastCancer.Models
         public string? MedicalHistory { get; set; } // TODO: Consider making this a separate entity
         public string? DoctorId { get; set; }
         public virtual TreatmentPlan? TreatmentPlan { get; set; }
+        public virtual PatientDiagnosis? Diagnosis { get; set; }
         public virtual Doctor? Doctor { get; set; }
+        public virtual ICollection<NutritionPlan> NutritionPlans { get; set; } = new List<NutritionPlan>();
+        public virtual ICollection<MealLog> MealLogs { get; set; } = new List<MealLog>();
 
-        public virtual ApplicationUser User { get; set; }
+        public virtual ApplicationUser User { get; set; } = null!;
 
         public virtual ICollection<Caregiver> Caregivers { get; set; } = new List<Caregiver>();
     }

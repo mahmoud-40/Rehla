@@ -10,6 +10,11 @@ namespace BreastCancer.Repository.Interface
         ITreatmentPlanRepository TreatmentPlansRepository { get; }
         IRefreshTokenRepository RefreshTokenRepository { get; }
 
+        IPatientDiagnosisRepository PatientDiagnosisRepository { get; }
+        IPostRepository PostRepository { get; }
+
+        IFollowRepository FollowRepository { get; }
+
         Task<IDbContextTransaction> BeginTransactionAsync();
 
         Task<int> SaveAsync();

@@ -55,24 +55,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
+                            ConcurrencyStamp = "7c799eee-aba0-443c-aa2d-05f5d35081d6",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
+                            ConcurrencyStamp = "69644a95-2c23-424c-b8a3-d85e0916d2c2",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
+                            ConcurrencyStamp = "05312799-b7e7-4978-a7d8-42faa3d15635",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
+                            ConcurrencyStamp = "49fecccc-4757-4790-b585-3816b28f7c28",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
@@ -217,6 +221,37 @@ namespace BreastCancer.Migrations
                     b.ToTable("Caregivers");
                 });
 
+            modelBuilder.Entity("BreastCancer.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("Comments", "community");
+                });
+
             modelBuilder.Entity("BreastCancer.Models.Doctor", b =>
                 {
                     b.Property<string>("UserId")
@@ -247,6 +282,51 @@ namespace BreastCancer.Migrations
                         .HasFilter("[LicenseNumber] IS NOT NULL");
 
                     b.ToTable("Doctors");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Follow", b =>
+                {
+                    b.Property<string>("FollowerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FollowingId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FollowerId", "FollowingId");
+
+                    b.HasIndex("FollowingId");
+
+                    b.ToTable("Follows", "community");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.MealLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EatenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MealId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PatientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MealId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("MealLogs");
                 });
 
             modelBuilder.Entity("BreastCancer.Models.Medicine", b =>
@@ -303,6 +383,125 @@ namespace BreastCancer.Migrations
                     b.ToTable("Medicines");
                 });
 
+            modelBuilder.Entity("BreastCancer.Models.NutritionMeal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Benefits")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Calories")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Carbs")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("DayId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Fat")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Instructions")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("MealType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Protein")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DayId");
+
+                    b.ToTable("NutritionMeals");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DoctorId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PatientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RejectionNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("NutritionPlans");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlanDay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("NutritionPlanDays");
+                });
+
             modelBuilder.Entity("BreastCancer.Models.Patient", b =>
                 {
                     b.Property<string>("UserId")
@@ -320,6 +519,124 @@ namespace BreastCancer.Migrations
                     b.HasIndex("DoctorId");
 
                     b.ToTable("Patients");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.PatientDiagnosis", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AgeAtDiagnosis")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CancerType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CancerTypeDetailed")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Chemotherapy")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ErStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Her2Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("HormoneTherapy")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NeoplasmHistologicGrade")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PrStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RadioTherapy")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TumorStage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("PatientDiagnoses");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Post", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MediaUrls")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Posts", "community");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Reaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Reactions", "community");
                 });
 
             modelBuilder.Entity("BreastCancer.Models.RefreshToken", b =>
@@ -605,6 +922,25 @@ namespace BreastCancer.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BreastCancer.Models.Comment", b =>
+                {
+                    b.HasOne("BreastCancer.Models.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("BreastCancer.Models.Post", "Post")
+                        .WithMany("Comments")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("BreastCancer.Models.Doctor", b =>
                 {
                     b.HasOne("BreastCancer.Models.ApplicationUser", "User")
@@ -616,6 +952,44 @@ namespace BreastCancer.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BreastCancer.Models.Follow", b =>
+                {
+                    b.HasOne("BreastCancer.Models.ApplicationUser", "Follower")
+                        .WithMany()
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("BreastCancer.Models.ApplicationUser", "Following")
+                        .WithMany()
+                        .HasForeignKey("FollowingId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Follower");
+
+                    b.Navigation("Following");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.MealLog", b =>
+                {
+                    b.HasOne("BreastCancer.Models.NutritionMeal", "Meal")
+                        .WithMany("MealLogs")
+                        .HasForeignKey("MealId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BreastCancer.Models.Patient", "Patient")
+                        .WithMany("MealLogs")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Meal");
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("BreastCancer.Models.Medicine", b =>
                 {
                     b.HasOne("BreastCancer.Models.TreatmentPlan", "TreatmentPlan")
@@ -625,6 +999,46 @@ namespace BreastCancer.Migrations
                         .IsRequired();
 
                     b.Navigation("TreatmentPlan");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionMeal", b =>
+                {
+                    b.HasOne("BreastCancer.Models.NutritionPlanDay", "Day")
+                        .WithMany("Meals")
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Day");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlan", b =>
+                {
+                    b.HasOne("BreastCancer.Models.Doctor", "Doctor")
+                        .WithMany("NutritionPlans")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("BreastCancer.Models.Patient", "Patient")
+                        .WithMany("NutritionPlans")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlanDay", b =>
+                {
+                    b.HasOne("BreastCancer.Models.NutritionPlan", "Plan")
+                        .WithMany("Days")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("BreastCancer.Models.Patient", b =>
@@ -641,6 +1055,47 @@ namespace BreastCancer.Migrations
                         .IsRequired();
 
                     b.Navigation("Doctor");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.PatientDiagnosis", b =>
+                {
+                    b.HasOne("BreastCancer.Models.Patient", "Patient")
+                        .WithOne("Diagnosis")
+                        .HasForeignKey("BreastCancer.Models.PatientDiagnosis", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Post", b =>
+                {
+                    b.HasOne("BreastCancer.Models.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Reaction", b =>
+                {
+                    b.HasOne("BreastCancer.Models.Post", "Post")
+                        .WithMany("Reactions")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("BreastCancer.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Post");
 
                     b.Navigation("User");
                 });
@@ -760,14 +1215,44 @@ namespace BreastCancer.Migrations
 
             modelBuilder.Entity("BreastCancer.Models.Doctor", b =>
                 {
+                    b.Navigation("NutritionPlans");
+
                     b.Navigation("Patients");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionMeal", b =>
+                {
+                    b.Navigation("MealLogs");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlan", b =>
+                {
+                    b.Navigation("Days");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.NutritionPlanDay", b =>
+                {
+                    b.Navigation("Meals");
                 });
 
             modelBuilder.Entity("BreastCancer.Models.Patient", b =>
                 {
                     b.Navigation("Caregivers");
 
+                    b.Navigation("Diagnosis");
+
+                    b.Navigation("MealLogs");
+
+                    b.Navigation("NutritionPlans");
+
                     b.Navigation("TreatmentPlan");
+                });
+
+            modelBuilder.Entity("BreastCancer.Models.Post", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Reactions");
                 });
 
             modelBuilder.Entity("BreastCancer.Models.TreatmentPlan", b =>
