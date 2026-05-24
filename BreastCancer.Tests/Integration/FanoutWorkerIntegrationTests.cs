@@ -1,4 +1,5 @@
 using BreastCancer.Community.Events;
+using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;

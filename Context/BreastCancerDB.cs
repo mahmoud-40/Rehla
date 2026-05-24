@@ -268,6 +268,12 @@ namespace BreastCancer.Context
                 .WithMany()
                 .HasForeignKey(follow => follow.FollowingId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<HighFollowerPost>()
+                .ToTable("HighFollowerPosts", "community");
+
+            builder.Entity<HighFollowerPost>()
+                .HasKey(h => h.Id);
         }
 
     }

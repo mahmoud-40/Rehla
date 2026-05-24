@@ -1,5 +1,7 @@
 using BreastCancer.Community;
 using BreastCancer.Community.Events;
+using BreastCancer.Community.Events.Models;
+using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Enum;
 using FluentAssertions;
 using MediatR;
