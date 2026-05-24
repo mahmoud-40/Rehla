@@ -32,7 +32,7 @@ public sealed class FanoutChannelIntegrationTests
 
         await using var provider = services.BuildServiceProvider();
         var mediator = provider.GetRequiredService<IMediator>();
-        var channel = provider.GetRequiredService<Channel<FanoutJob>>();
+        var channel = provider.GetRequiredService<Channel<BreastCancer.Community.Workers.Fanout.FanoutJob>>();
 
         var now = DateTimeOffset.UtcNow;
         await mediator.Publish(new PostCreatedEvent(42, "author-1", PostVisibility.Public));

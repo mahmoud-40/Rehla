@@ -78,7 +78,8 @@ public sealed class FanoutWorkerHighFollowerTests
             channel,
             multiplexerMock.Object,
             provider.GetRequiredService<IServiceScopeFactory>(),
-            NullLogger<FanoutWorker>.Instance);
+            NullLogger<FanoutWorker>.Instance,
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>());
 
         // Act
         await worker.StartAsync(CancellationToken.None);

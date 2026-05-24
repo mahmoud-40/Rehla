@@ -3,6 +3,8 @@ using BreastCancer.Models;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Threading.Channels;
+using Microsoft.Extensions.Options;
+using BreastCancer.Community.Options;
 
 namespace BreastCancer.Community.Workers.Fanout;
 
@@ -14,17 +16,21 @@ public sealed class FanoutWorker : BackgroundService
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FanoutWorker> _logger;
+    private readonly int _fanoutPushThreshold;
 
     public FanoutWorker(
         Channel<FanoutJob> fanoutChannel,
         IConnectionMultiplexer connectionMultiplexer,
         IServiceScopeFactory scopeFactory,
-        ILogger<FanoutWorker> logger)
+        ILogger<FanoutWorker> logger,
+        IOptions<CommunityOptions> options)
     {
         _fanoutChannel = fanoutChannel ?? throw new ArgumentNullException(nameof(fanoutChannel));
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(options);
+        _fanoutPushThreshold = options.Value.FanoutPushThreshold;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,12 +70,14 @@ public sealed class FanoutWorker : BackgroundService
             await using var scope = _scopeFactory.CreateAsyncScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<BreastCancerDB>();
 
-            var followerCount = await dbContext.Follows
+            var followerIds = await dbContext.Follows
                 .AsNoTracking()
                 .Where(f => f.FollowingId == job.AuthorId)
-                .CountAsync(cancellationToken);
+                .Select(f => f.FollowerId)
+                .Take(_fanoutPushThreshold + 1)
+                .ToListAsync(cancellationToken);
 
-            if (followerCount == 0)
+            if (followerIds.Count == 0)
             {
                 _logger.LogInformation("No followers found for author {AuthorId} when processing fanout job for post {PostId}.", job.AuthorId, job.PostId);
                 return;
@@ -77,16 +85,13 @@ public sealed class FanoutWorker : BackgroundService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var options = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>().Value;
-            var threshold = options.FanoutPushThreshold;
-
-            if (followerCount >= threshold)
+            if (followerIds.Count > _fanoutPushThreshold)
             {
-                await HandleHighFollowerAsync(dbContext, job, followerCount, threshold, cancellationToken);
+                await HandleHighFollowerAsync(dbContext, job, followerIds.Count, cancellationToken);
             }
             else
             {
-                await HandleLowFollowerAsync(dbContext, job, cancellationToken);
+                await HandleLowFollowerAsync(followerIds, job, cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -103,7 +108,7 @@ public sealed class FanoutWorker : BackgroundService
         }
     }
 
-    private async Task HandleHighFollowerAsync(BreastCancerDB dbContext, FanoutJob job, int followerCount, int threshold, CancellationToken cancellationToken)
+    private async Task HandleHighFollowerAsync(BreastCancerDB dbContext, FanoutJob job, int followerCount, CancellationToken cancellationToken)
     {
         var high = new HighFollowerPost
         {
@@ -115,17 +120,11 @@ public sealed class FanoutWorker : BackgroundService
         dbContext.Add(high);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Author {AuthorId} has {FollowerCount} followers >= {Threshold}; recorded HighFollowerPost and skipped push.", job.AuthorId, followerCount, threshold);
+        _logger.LogInformation("Author {AuthorId} exceeded fanout threshold ({Threshold}); recorded HighFollowerPost and skipped push.", job.AuthorId, _fanoutPushThreshold);
     }
 
-    private async Task HandleLowFollowerAsync(BreastCancerDB dbContext, FanoutJob job, CancellationToken cancellationToken)
+    private async Task HandleLowFollowerAsync(List<string> followerIds, FanoutJob job, CancellationToken cancellationToken)
     {
-        var followerIds = await dbContext.Follows
-            .AsNoTracking()
-            .Where(f => f.FollowingId == job.AuthorId)
-            .Select(f => f.FollowerId)
-            .ToListAsync(cancellationToken);
-
         var redisDb = _connectionMultiplexer.GetDatabase();
         var score = job.Timestamp.ToUnixTimeSeconds();
         var postIdMember = job.PostId.ToString();
