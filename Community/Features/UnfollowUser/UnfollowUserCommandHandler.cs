@@ -3,7 +3,7 @@ using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using MediatR;
 
-namespace BreastCancer.Community.Features;
+namespace BreastCancer.Community.Features.UnfollowUser;
 
 public sealed class UnfollowUserCommandHandler : IRequestHandler<UnfollowUserCommand, Unit>
 {

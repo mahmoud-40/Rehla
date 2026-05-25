@@ -34,6 +34,7 @@ namespace BreastCancer.Context
         public virtual DbSet<Reaction> Reactions { get; set; }
         public virtual DbSet<Follow> Follows { get; set; }
         public virtual DbSet<Notification> Notifications { get; set; }
+        public virtual DbSet<HighFollowerPost> HighFollowerPosts { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -286,6 +287,11 @@ namespace BreastCancer.Context
 
             builder.Entity<Notification>()
                 .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+            builder.Entity<HighFollowerPost>()
+                .ToTable("HighFollowerPosts", "community");
+
+            builder.Entity<HighFollowerPost>()
+                .HasKey(h => h.Id);
         }
 
     }

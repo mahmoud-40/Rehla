@@ -1,7 +1,10 @@
 using BreastCancer.Community.Events;
+using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
+using BreastCancer.Repository.Interface;
+using BreastCancer.Repository.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +26,19 @@ public sealed class FanoutWorkerIntegrationTests
         var dbRoot = new Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot();
         var dbName = $"fanout-worker-{Guid.NewGuid()}";
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        var dict = new Dictionary<string, string?>
+        {
+            { "Community:FanoutPushThreshold", "500" }
+        };
+
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder();
+        configuration.Add(new Microsoft.Extensions.Configuration.Memory.MemoryConfigurationSource { InitialData = dict });
+        var builtConfig = configuration.Build();
+
+        services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(builtConfig);
+        services.Configure<BreastCancer.Community.Options.CommunityOptions>(builtConfig.GetSection("Community"));
 
         await using var provider = services.BuildServiceProvider();
 
@@ -96,7 +112,8 @@ public sealed class FanoutWorkerIntegrationTests
             channel,
             multiplexerMock.Object,
             provider.GetRequiredService<IServiceScopeFactory>(),
-            NullLogger<FanoutWorker>.Instance);
+            NullLogger<FanoutWorker>.Instance,
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>());
 
         // Act
         await worker.StartAsync(CancellationToken.None);

@@ -1,13 +1,14 @@
 using AutoMapper;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Events;
+using BreastCancer.Community.Events.Models;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Enum;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using MediatR;
 
-namespace BreastCancer.Community.Features;
+namespace BreastCancer.Community.Features.CreatePost;
 
 public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, PostDTO>
 {

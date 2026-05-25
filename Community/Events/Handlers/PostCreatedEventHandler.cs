@@ -1,6 +1,8 @@
+using BreastCancer.Community.Events.Models;
+using BreastCancer.Community.Events.Sinks;
 using MediatR;
 
-namespace BreastCancer.Community.Events;
+namespace BreastCancer.Community.Events.Handlers;
 
 public sealed class PostCreatedEventHandler : INotificationHandler<PostCreatedEvent>
 {

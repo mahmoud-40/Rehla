@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace BreastCancer.Community.Features
+namespace BreastCancer.Community.Features.FollowUser
 {
     public sealed class FollowUserCommandValidator : AbstractValidator<FollowUserCommand>
     {

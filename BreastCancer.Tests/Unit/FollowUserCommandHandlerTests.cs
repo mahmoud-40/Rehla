@@ -1,6 +1,6 @@
-using BreastCancer.Community.Events;
+using BreastCancer.Community.Events.Models;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features;
+using BreastCancer.Community.Features.FollowUser;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using FluentAssertions;

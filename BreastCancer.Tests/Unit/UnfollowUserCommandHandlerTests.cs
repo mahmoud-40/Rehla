@@ -1,5 +1,5 @@
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features;
+using BreastCancer.Community.Features.UnfollowUser;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using FluentAssertions;

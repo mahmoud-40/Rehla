@@ -1,6 +1,6 @@
 using BreastCancer.Enum;
 
-namespace BreastCancer.Community.Events;
+namespace BreastCancer.Community.Workers.Fanout;
 
 public sealed record FanoutJob(
     int PostId,
