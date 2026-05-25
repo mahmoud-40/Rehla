@@ -1,3 +1,4 @@
+using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Hubs;
 using BreastCancer.Models;
@@ -23,7 +24,7 @@ namespace BreastCancer.Service.Implementation
             _logger = logger;
         }
 
-        public async Task<NotificationDto> SendNotificationAsync(string userId, NotificationDto payload)
+        public async Task<NotificationDto> SendNotificationAsync(string userId, CreateNotificationDto payload)
         {
             var entity = new Notification
             {

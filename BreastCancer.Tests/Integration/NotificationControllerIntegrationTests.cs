@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using BreastCancer.Controllers;
+using BreastCancer.DTO.request;
 using BreastCancer.DTO.response;
 using BreastCancer.Enum;
 using BreastCancer.Service.Interface;
@@ -196,15 +197,21 @@ public class NotificationControllerIntegrationTests
         public IReadOnlyList<NotificationDto> GetAll(string userId)
             => _byUser.TryGetValue(userId, out var list) ? list : Array.Empty<NotificationDto>();
 
-        public Task<NotificationDto> SendNotificationAsync(string userId, NotificationDto payload)
+        public Task<NotificationDto> SendNotificationAsync(string userId, CreateNotificationDto payload)
         {
             var list = _byUser.GetValueOrDefault(userId) ?? new List<NotificationDto>();
             var nextId = list.Count == 0 ? 1 : list.Max(n => n.Id) + 1;
-            var created = Clone(payload);
-            created.Id = nextId;
-            created.UserId = userId;
-            created.IsRead = false;
-            created.CreatedAt = DateTime.UtcNow;
+            var created = new NotificationDto
+            {
+                Id = nextId,
+                UserId = userId,
+                Title = payload.Title,
+                Message = payload.Message,
+                Type = payload.Type,
+                TargetId = payload.TargetId,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
             list.Add(created);
             _byUser[userId] = list;
             return Task.FromResult(created);
