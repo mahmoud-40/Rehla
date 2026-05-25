@@ -114,16 +114,17 @@ namespace BreastCancer.Service.Implementation
             var unread = (await _unitOfWork.NotificationRepository.FilterAsync(
                 n => n.UserId == userId && !n.IsRead)).ToList();
 
+            if (unread.Count == 0)
+            {
+                return 0;
+            }
+
             foreach (var notification in unread)
             {
                 notification.IsRead = true;
-                _unitOfWork.NotificationRepository.Update(notification);
             }
 
-            if (unread.Count > 0)
-            {
-                await _unitOfWork.SaveAsync();
-            }
+            await _unitOfWork.SaveAsync();
 
             return unread.Count;
         }
