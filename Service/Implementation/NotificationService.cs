@@ -66,25 +66,22 @@ namespace BreastCancer.Service.Implementation
             page = page < 1 ? 1 : page;
             pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-            var items = await _unitOfWork.NotificationRepository.FilterAsync(
+            var all = (await _unitOfWork.NotificationRepository.FilterAsync(
                 n => n.UserId == userId,
-                q => q.OrderByDescending(n => n.CreatedAt),
-                page,
-                pageSize);
+                q => q.OrderByDescending(n => n.CreatedAt))).ToList();
 
-            var totalCount = await _unitOfWork.NotificationRepository.CountAsync(
-                n => n.UserId == userId);
-
-            var unreadCount = await _unitOfWork.NotificationRepository.CountAsync(
-                n => n.UserId == userId && !n.IsRead);
+            var items = all
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return new PaginatedNotificationsResponse
             {
                 Items = _mapper.Map<IReadOnlyList<NotificationDto>>(items),
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = totalCount,
-                UnreadCount = unreadCount
+                TotalCount = all.Count,
+                UnreadCount = all.Count(n => !n.IsRead)
             };
         }
 
@@ -114,17 +111,16 @@ namespace BreastCancer.Service.Implementation
             var unread = (await _unitOfWork.NotificationRepository.FilterAsync(
                 n => n.UserId == userId && !n.IsRead)).ToList();
 
-            if (unread.Count == 0)
-            {
-                return 0;
-            }
-
             foreach (var notification in unread)
             {
                 notification.IsRead = true;
+                _unitOfWork.NotificationRepository.Update(notification);
             }
 
-            await _unitOfWork.SaveAsync();
+            if (unread.Count > 0)
+            {
+                await _unitOfWork.SaveAsync();
+            }
 
             return unread.Count;
         }
