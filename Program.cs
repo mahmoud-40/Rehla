@@ -1,5 +1,6 @@
 
 using BreastCancer.Context;
+using BreastCancer.Hubs;
 using BreastCancer.Mapping;
 using BreastCancer.Models;
 using BreastCancer.Community;
@@ -16,6 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,6 +33,7 @@ namespace BreastCancer
 
             // Add services to the container.
 
+            builder.Services.AddSignalR();
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -87,6 +90,8 @@ namespace BreastCancer
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddScoped<ITreatmentPlanService, TreatmentPlanService>();
+            builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
             builder.Services.AddAutoMapper(cfg =>
             {
@@ -128,8 +133,25 @@ namespace BreastCancer
                     ValidateLifetime = true,
                     // Secret Key
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    NameClaimType = ClaimTypes.NameIdentifier,
+                    RoleClaimType = ClaimTypes.Role
+                };
 
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments(NotificationHub.HubRoute))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
 
             });
@@ -190,11 +212,11 @@ namespace BreastCancer
             app.UseCors("AllowAll");
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-            // app.UseAuthentication();
-            // app.UseAuthorization();
-
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
+            app.MapHub<NotificationHub>(NotificationHub.HubRoute);
 
             await app.RunAsync();
         }

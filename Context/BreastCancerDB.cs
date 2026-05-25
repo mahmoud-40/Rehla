@@ -2,11 +2,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace BreastCancer.Context
 {
     public class BreastCancerDB : IdentityDbContext<ApplicationUser, ApplicationRole, string>
     {
+        private static readonly JsonSerializerOptions PostMediaUrlsJsonOptions = new();
+
         public BreastCancerDB(DbContextOptions options)
             : base(options)
         {
@@ -30,6 +33,7 @@ namespace BreastCancer.Context
         public virtual DbSet<Comment> Comments { get; set; }
         public virtual DbSet<Reaction> Reactions { get; set; }
         public virtual DbSet<Follow> Follows { get; set; }
+        public virtual DbSet<Notification> Notifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -199,10 +203,10 @@ namespace BreastCancer.Context
             builder.Entity<Post>()
                 .Property(post => post.MediaUrls)
                 .HasConversion(
-                    urls => System.Text.Json.JsonSerializer.Serialize(urls, (System.Text.Json.JsonSerializerOptions?)null),
+                    urls => JsonSerializer.Serialize(urls, PostMediaUrlsJsonOptions),
                     json => string.IsNullOrWhiteSpace(json)
                         ? new List<string>()
-                        : System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>());
+                        : JsonSerializer.Deserialize<List<string>>(json, PostMediaUrlsJsonOptions) ?? new List<string>());
 
             builder.Entity<Post>()
                 .HasOne(post => post.Author)
@@ -268,6 +272,20 @@ namespace BreastCancer.Context
                 .WithMany()
                 .HasForeignKey(follow => follow.FollowingId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Notification>()
+                .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
         }
 
     }

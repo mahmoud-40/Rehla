@@ -18,6 +18,7 @@ namespace BreastCancer.Repository.Repositories
         private IPatientDiagnosisRepository _patientDiagnosisRepository;
         private IPostRepository _postRepository;
         private IFollowRepository _followRepository;
+        private INotificationRepository _notificationsRepository;
 
         public UnitOfWork(BreastCancerDB Context)
         {
@@ -115,6 +116,18 @@ namespace BreastCancer.Repository.Repositories
                     _followRepository = new FollowRepository(context);
                 }
                 return _followRepository;
+            }
+        }
+
+        public INotificationRepository NotificationsRepository
+        {
+            get
+            {
+                if (_notificationsRepository == null)
+                {
+                    _notificationsRepository = new NotificationRepository(context);
+                }
+                return _notificationsRepository;
             }
         }
 
