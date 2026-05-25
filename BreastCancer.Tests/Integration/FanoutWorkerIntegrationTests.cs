@@ -3,6 +3,8 @@ using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
+using BreastCancer.Repository.Interface;
+using BreastCancer.Repository.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,7 @@ public sealed class FanoutWorkerIntegrationTests
         var dbRoot = new Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot();
         var dbName = $"fanout-worker-{Guid.NewGuid()}";
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         var dict = new Dictionary<string, string?>
         {

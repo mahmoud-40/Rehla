@@ -25,6 +25,7 @@ public sealed class FanoutWorkerHighFollowerTests
         var dbRoot = new Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot();
         var dbName = $"fanout-worker-{Guid.NewGuid()}";
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
+        services.AddScoped<BreastCancer.Repository.Interface.IUnitOfWork, BreastCancer.Repository.Repositories.UnitOfWork>();
 
         // Configure community options (threshold default 500)
         // Set the configured threshold via configuration string

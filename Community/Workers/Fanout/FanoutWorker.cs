@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using BreastCancer.Community.Options;
+using BreastCancer.Repository.Interface;
 
 namespace BreastCancer.Community.Workers.Fanout;
 
@@ -87,7 +88,17 @@ public sealed class FanoutWorker : BackgroundService
 
             if (followerIds.Count > _fanoutPushThreshold)
             {
-                await HandleHighFollowerAsync(dbContext, job, followerIds.Count, cancellationToken);
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                unitOfWork.HighFollowerPostRepository.Add(new HighFollowerPost
+                {
+                    PostId = job.PostId,
+                    AuthorId = job.AuthorId,
+                    CreatedAt = job.Timestamp
+                });
+
+                await unitOfWork.SaveAsync();
+
+                _logger.LogInformation("Author {AuthorId} exceeded fanout threshold ({Threshold}); recorded HighFollowerPost and skipped push.", job.AuthorId, _fanoutPushThreshold);
             }
             else
             {
