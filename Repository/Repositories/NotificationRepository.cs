@@ -62,17 +62,10 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<int> MarkAllAsReadAsync(string userId)
         {
-            var unread = await _Context.Notifications
+            return await _Context.Notifications
                 .Where(n => n.UserId == userId && !n.IsRead)
-                .ToListAsync();
-
-            foreach (var notification in unread)
-            {
-                notification.IsRead = true;
-                Update(notification);
-            }
-
-            return unread.Count;
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(n => n.IsRead, true));
         }
     }
 }
