@@ -66,22 +66,25 @@ namespace BreastCancer.Service.Implementation
             page = page < 1 ? 1 : page;
             pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-            var all = (await _unitOfWork.NotificationRepository.FilterAsync(
+            var items = await _unitOfWork.NotificationRepository.FilterAsync(
                 n => n.UserId == userId,
-                q => q.OrderByDescending(n => n.CreatedAt))).ToList();
+                q => q.OrderByDescending(n => n.CreatedAt),
+                page,
+                pageSize);
 
-            var items = all
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var totalCount = await _unitOfWork.NotificationRepository.CountAsync(
+                n => n.UserId == userId);
+
+            var unreadCount = await _unitOfWork.NotificationRepository.CountAsync(
+                n => n.UserId == userId && !n.IsRead);
 
             return new PaginatedNotificationsResponse
             {
                 Items = _mapper.Map<IReadOnlyList<NotificationDto>>(items),
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = all.Count,
-                UnreadCount = all.Count(n => !n.IsRead)
+                TotalCount = totalCount,
+                UnreadCount = unreadCount
             };
         }
 
