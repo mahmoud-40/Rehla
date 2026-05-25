@@ -25,6 +25,18 @@ public sealed class FanoutWorkerIntegrationTests
         var dbName = $"fanout-worker-{Guid.NewGuid()}";
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
 
+        var dict = new Dictionary<string, string?>
+        {
+            { "Community:FanoutPushThreshold", "500" }
+        };
+
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder();
+        configuration.Add(new Microsoft.Extensions.Configuration.Memory.MemoryConfigurationSource { InitialData = dict });
+        var builtConfig = configuration.Build();
+
+        services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(builtConfig);
+        services.Configure<BreastCancer.Community.Options.CommunityOptions>(builtConfig.GetSection("Community"));
+
         await using var provider = services.BuildServiceProvider();
 
         await using (var seedScope = provider.CreateAsyncScope())
