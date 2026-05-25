@@ -110,6 +110,8 @@ namespace BreastCancer
                 });
             });
 
+            builder.Services.AddAuthorization();
+
             #region JWT Configuration
             builder.Services.AddAuthentication(options =>
             {
@@ -131,6 +133,7 @@ namespace BreastCancer
                     ValidAudience = jwtOptions.Audience,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
                     // Secret Key
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
                     ClockSkew = TimeSpan.Zero,

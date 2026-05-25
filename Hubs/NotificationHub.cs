@@ -8,10 +8,5 @@ namespace BreastCancer.Hubs
     {
         public const string HubRoute = "/hubs/notifications";
         public const string ReceiveNotificationMethod = "ReceiveNotification";
-
-        public override Task OnConnectedAsync()
-        {
-            return base.OnConnectedAsync();
-        }
     }
 }

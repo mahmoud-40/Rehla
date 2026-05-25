@@ -21,20 +21,26 @@ namespace BreastCancer.Repository.Repositories
             int page,
             int pageSize)
         {
-            var query = _Context.Notifications
+            var userNotifications = _Context.Notifications
                 .AsNoTracking()
                 .Where(n => n.UserId == userId);
 
-            var totalCount = await query.CountAsync();
-            var unreadCount = await query.CountAsync(n => !n.IsRead);
+            var counts = await userNotifications
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    TotalCount = g.Count(),
+                    UnreadCount = g.Count(n => !n.IsRead)
+                })
+                .FirstOrDefaultAsync();
 
-            var items = await query
+            var items = await userNotifications
                 .OrderByDescending(n => n.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return (items, totalCount, unreadCount);
+            return (items, counts?.TotalCount ?? 0, counts?.UnreadCount ?? 0);
         }
 
         public async Task<Notification?> GetByIdForUserAsync(int id, string userId)
