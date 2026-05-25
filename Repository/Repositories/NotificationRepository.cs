@@ -5,20 +5,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Repository.Repositories
 {
-    public class NotificationRepository : INotificationRepository
+    public class NotificationRepository : GenericRepository<Notification>, INotificationRepository
     {
-        private readonly BreastCancerDB _context;
-
-        public NotificationRepository(BreastCancerDB context)
+        public NotificationRepository(BreastCancerDB context) : base(context)
         {
-            _context = context;
         }
 
-        public async Task<Notification> AddAsync(Notification notification)
+        public async Task AddAsync(Notification notification)
         {
-            await _context.Notifications.AddAsync(notification);
-            await _context.SaveChangesAsync();
-            return notification;
+            await base.AddAsync(notification);
         }
 
         public async Task<(IReadOnlyList<Notification> Items, int TotalCount, int UnreadCount)> GetByUserIdPagedAsync(
@@ -26,7 +21,7 @@ namespace BreastCancer.Repository.Repositories
             int page,
             int pageSize)
         {
-            var query = _context.Notifications
+            var query = _Context.Notifications
                 .AsNoTracking()
                 .Where(n => n.UserId == userId);
 
@@ -44,7 +39,7 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<Notification?> GetByIdForUserAsync(int id, string userId)
         {
-            return await _context.Notifications
+            return await _Context.Notifications
                 .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
         }
 
@@ -59,7 +54,7 @@ namespace BreastCancer.Repository.Repositories
             if (!notification.IsRead)
             {
                 notification.IsRead = true;
-                await _context.SaveChangesAsync();
+                Update(notification);
             }
 
             return true;
@@ -67,18 +62,14 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<int> MarkAllAsReadAsync(string userId)
         {
-            var unread = await _context.Notifications
+            var unread = await _Context.Notifications
                 .Where(n => n.UserId == userId && !n.IsRead)
                 .ToListAsync();
 
             foreach (var notification in unread)
             {
                 notification.IsRead = true;
-            }
-
-            if (unread.Count > 0)
-            {
-                await _context.SaveChangesAsync();
+                Update(notification);
             }
 
             return unread.Count;

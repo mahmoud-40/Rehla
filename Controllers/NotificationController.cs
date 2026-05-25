@@ -24,8 +24,7 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            if (!TryGetCurrentUserId(out var userId))
             {
                 return Unauthorized();
             }
@@ -41,8 +40,7 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            if (!TryGetCurrentUserId(out var userId))
             {
                 return Unauthorized();
             }
@@ -62,14 +60,19 @@ namespace BreastCancer.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         public async Task<IActionResult> MarkAllAsRead()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            if (!TryGetCurrentUserId(out var userId))
             {
                 return Unauthorized();
             }
 
             var count = await _notificationService.MarkAllAsReadAsync(userId);
             return Ok(new { markedCount = count });
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+            return !string.IsNullOrEmpty(userId);
         }
     }
 }

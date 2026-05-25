@@ -9,15 +9,18 @@ namespace BreastCancer.Service.Implementation
 {
     public class NotificationService : INotificationService
     {
-        private readonly INotificationRepository _notificationRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly ILogger<NotificationService> _logger;
 
         public NotificationService(
-            INotificationRepository notificationRepository,
-            IHubContext<NotificationHub> hubContext)
+            IUnitOfWork unitOfWork,
+            IHubContext<NotificationHub> hubContext,
+            ILogger<NotificationService> logger)
         {
-            _notificationRepository = notificationRepository;
+            _unitOfWork = unitOfWork;
             _hubContext = hubContext;
+            _logger = logger;
         }
 
         public async Task<NotificationDto> SendNotificationAsync(string userId, NotificationDto payload)
@@ -33,12 +36,25 @@ namespace BreastCancer.Service.Implementation
                 CreatedAt = DateTime.UtcNow
             };
 
-            var saved = await _notificationRepository.AddAsync(entity);
-            var dto = MapToDto(saved);
+            await _unitOfWork.NotificationsRepository.AddAsync(entity);
+            await _unitOfWork.SaveAsync();
 
-            await _hubContext.Clients
-                .User(userId)
-                .SendAsync(NotificationHub.ReceiveNotificationMethod, dto);
+            var dto = MapToDto(entity);
+
+            try
+            {
+                await _hubContext.Clients
+                    .User(userId)
+                    .SendAsync(NotificationHub.ReceiveNotificationMethod, dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to push notification {NotificationId} to user {UserId} via SignalR",
+                    dto.Id,
+                    userId);
+            }
 
             return dto;
         }
@@ -52,7 +68,7 @@ namespace BreastCancer.Service.Implementation
             pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
             var (items, totalCount, unreadCount) =
-                await _notificationRepository.GetByUserIdPagedAsync(userId, page, pageSize);
+                await _unitOfWork.NotificationsRepository.GetByUserIdPagedAsync(userId, page, pageSize);
 
             return new PaginatedNotificationsResponse
             {
@@ -64,11 +80,28 @@ namespace BreastCancer.Service.Implementation
             };
         }
 
-        public Task<bool> MarkAsReadAsync(int id, string userId)
-            => _notificationRepository.MarkAsReadAsync(id, userId);
+        public async Task<bool> MarkAsReadAsync(int id, string userId)
+        {
+            var updated = await _unitOfWork.NotificationsRepository.MarkAsReadAsync(id, userId);
+            if (!updated)
+            {
+                return false;
+            }
 
-        public Task<int> MarkAllAsReadAsync(string userId)
-            => _notificationRepository.MarkAllAsReadAsync(userId);
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
+
+        public async Task<int> MarkAllAsReadAsync(string userId)
+        {
+            var count = await _unitOfWork.NotificationsRepository.MarkAllAsReadAsync(userId);
+            if (count > 0)
+            {
+                await _unitOfWork.SaveAsync();
+            }
+
+            return count;
+        }
 
         private static NotificationDto MapToDto(Notification notification) => new()
         {
