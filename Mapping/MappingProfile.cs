@@ -237,6 +237,19 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls));
 
             #endregion
+
+            #region Notification Mapping
+
+            CreateMap<CreateNotificationDto, Notification>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.UserId, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore())
+                .ForMember(dest => dest.IsRead, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+
+            CreateMap<Notification, NotificationDto>();
+
+            #endregion
         }
     }
 }

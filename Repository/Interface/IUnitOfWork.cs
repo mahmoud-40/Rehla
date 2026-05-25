@@ -15,7 +15,7 @@ namespace BreastCancer.Repository.Interface
 
         IFollowRepository FollowRepository { get; }
 
-        INotificationRepository NotificationsRepository { get; }
+        INotificationRepository NotificationRepository { get; }
 
         Task<IDbContextTransaction> BeginTransactionAsync();
 
