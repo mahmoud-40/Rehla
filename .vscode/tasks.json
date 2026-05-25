@@ -53,7 +53,7 @@
             "watch",
             "run",
             "--project",
-            "${workspaceFolder}/BreastCancer.sln"
+            "${workspaceFolder}/BreastCancer/BreastCancer.csproj"
         ],
         "problemMatcher": "$msCompile"
     }
