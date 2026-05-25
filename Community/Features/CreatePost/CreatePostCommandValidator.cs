@@ -1,7 +1,7 @@
 using BreastCancer.Enum;
 using FluentValidation;
 
-namespace BreastCancer.Community.Features;
+namespace BreastCancer.Community.Features.CreatePost;
 
 public sealed class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
 {

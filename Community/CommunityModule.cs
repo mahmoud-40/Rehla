@@ -1,6 +1,5 @@
 using BreastCancer.Community.Behaviors;
-using BreastCancer.Community.Domain;
-using BreastCancer.Community.Events;
+using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Community.Options;
 using BreastCancer.Community.Services.Implementation;
 using BreastCancer.Community.Services.Interface;
@@ -11,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Threading.Channels;
+using BreastCancer.Community.Events.Models;
+using BreastCancer.Community.Events.Sinks;
 
 namespace BreastCancer.Community;
 
@@ -46,6 +47,8 @@ public static class CommunityModule
             SingleWriter = false
         }));
         services.AddHostedService<FanoutWorker>();
+
+        services.Configure<CommunityOptions>(configuration.GetSection(CommunityOptions.CommunityOptionsKey));
 
         services.AddMediatR(assembly);
         services.AddValidatorsFromAssembly(assembly);

@@ -30,6 +30,7 @@ namespace BreastCancer.Context
         public virtual DbSet<Comment> Comments { get; set; }
         public virtual DbSet<Reaction> Reactions { get; set; }
         public virtual DbSet<Follow> Follows { get; set; }
+        public virtual DbSet<HighFollowerPost> HighFollowerPosts { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -268,6 +269,12 @@ namespace BreastCancer.Context
                 .WithMany()
                 .HasForeignKey(follow => follow.FollowingId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            builder.Entity<HighFollowerPost>()
+                .ToTable("HighFollowerPosts", "community");
+
+            builder.Entity<HighFollowerPost>()
+                .HasKey(h => h.Id);
         }
 
     }

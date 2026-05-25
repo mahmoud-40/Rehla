@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace BreastCancer.Community.Features;
+namespace BreastCancer.Community.Features.UnfollowUser;
 
 public sealed class UnfollowUserCommandValidator : AbstractValidator<UnfollowUserCommand>
 {

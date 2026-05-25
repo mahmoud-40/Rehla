@@ -1,7 +1,8 @@
 using MediatR;
 using System.Threading.Channels;
+using BreastCancer.Community.Events.Models;
 
-namespace BreastCancer.Community.Events;
+namespace BreastCancer.Community.Workers.Fanout;
 
 public sealed class FanoutHandler : INotificationHandler<PostCreatedEvent>
 {

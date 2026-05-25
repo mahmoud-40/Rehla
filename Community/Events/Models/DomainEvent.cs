@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace BreastCancer.Community.Domain;
+namespace BreastCancer.Community.Events.Models;
 
 public abstract record DomainEvent : INotification
 {
