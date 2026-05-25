@@ -84,8 +84,25 @@ public sealed class FanoutWorkerHighFollowerTests
         // Act
         await worker.StartAsync(CancellationToken.None);
 
-        // Give some time for processing
-        await Task.Delay(500);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var found = false;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+
+            await using (var verifyScope = provider.CreateAsyncScope())
+            {
+                var dbContext = verifyScope.ServiceProvider.GetRequiredService<BreastCancerDB>();
+                if (await dbContext.Set<HighFollowerPost>().AnyAsync(h => h.PostId == 99))
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        found.Should().BeTrue("the worker should have recorded a HighFollowerPost for authors with many followers");
 
         await worker.StopAsync(CancellationToken.None);
 
