@@ -34,6 +34,8 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
         if (await redisDb.KeyExistsAsync(feedKey))
         {
+            _logger.LogInformation("Feed cache hit for user {UserId}; retrieving feed from Redis.", request.UserId);
+            
             var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit + 1);
             var postIds = range
                 .Take(normalizedLimit)
