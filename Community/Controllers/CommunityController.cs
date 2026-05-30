@@ -1,6 +1,7 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features;
+using BreastCancer.Community.Features.Feed;
 using BreastCancer.Community.Features.CreatePost;
 using BreastCancer.Community.Features.FollowUser;
 using BreastCancer.Community.Features.UnfollowUser;
@@ -132,6 +133,33 @@ namespace BreastCancer.Community.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+        }
+
+        [HttpGet("feed")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Get community feed")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Feed retrieved successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        public async Task<IActionResult> GetFeed([FromQuery] int? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            var effectiveLimit = limit ?? 20;
+            if (effectiveLimit > 50)
+            {
+                effectiveLimit = 50;
+            }
+            if (effectiveLimit < 1)
+            {
+                effectiveLimit = 1;
+            }
+
+            var feed = await mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit), cancellationToken);
+            return Ok(feed);
         }
     }
 }
