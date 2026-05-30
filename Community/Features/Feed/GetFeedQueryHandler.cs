@@ -9,7 +9,7 @@ namespace BreastCancer.Community.Features.Feed;
 
 public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResponseDto>
 {
-    private const string FeedKeyPrefix = "community:feed:";
+    private const string FeedKeyPrefix = "rehla:community:feed:";
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly BreastCancerDB _dbContext;
     private readonly ILogger<GetFeedQueryHandler> _logger;
@@ -34,13 +34,17 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
         if (await redisDb.KeyExistsAsync(feedKey))
         {
-            var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit);
-            var postIds = range.Select(value => (int)value).ToList();
+            var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit + 1);
+            var postIds = range
+                .Take(normalizedLimit)
+                .Select(value => (int)value)
+                .ToList();
+            var hasMore = range.Length > normalizedLimit;
 
             return new FeedResponseDto
             {
                 PostIds = postIds,
-                NextCursor = postIds.Count == normalizedLimit ? postIds[^1] : null
+                NextCursor = hasMore && postIds.Count > 0 ? postIds[^1] : null
             };
         }
 
@@ -53,20 +57,39 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
         if (request.Cursor.HasValue)
         {
-            query = query.Where(p => p.Id < request.Cursor.Value);
+            var cursorInfo = await _dbContext.Posts.AsNoTracking()
+                .Where(p => p.Id == request.Cursor.Value)
+                .Select(p => new { p.CreatedAt, p.Id })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (cursorInfo is not null)
+            {
+                query = query.Where(p => p.CreatedAt < cursorInfo.CreatedAt
+                    || (p.CreatedAt == cursorInfo.CreatedAt && p.Id < cursorInfo.Id));
+            }
+            else
+            {
+                query = query.Where(p => p.Id < request.Cursor.Value);
+            }
         }
 
         var posts = await query
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id)
-            .Take(normalizedLimit)
+            .Take(normalizedLimit + 1)
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
+
+        var hasMorePosts = posts.Count > normalizedLimit;
+        if (hasMorePosts)
+        {
+            posts = posts.Take(normalizedLimit).ToList();
+        }
 
         return new FeedResponseDto
         {
             PostIds = posts,
-            NextCursor = posts.Count == normalizedLimit ? posts[^1] : null
+            NextCursor = hasMorePosts && posts.Count > 0 ? posts[^1] : null
         };
     }
 
