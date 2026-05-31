@@ -1,8 +1,8 @@
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Context;
+using BreastCancer.Enum;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace BreastCancer.Community.Features.Feed;
@@ -29,29 +29,61 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var normalizedLimit = Math.Clamp(request.Limit, 1, 50);
+        var roleFlags = RoleFlags.Create(request.Roles);
         var redisDb = _connectionMultiplexer.GetDatabase();
         var feedKey = BuildFeedKey(request.UserId);
 
         if (await redisDb.KeyExistsAsync(feedKey))
         {
             _logger.LogInformation("Feed cache hit for user {UserId}; retrieving feed from Redis.", request.UserId);
-            
-            var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit + 1);
-            var postIds = range
-                .Take(normalizedLimit)
-                .Select(value => (int)value)
-                .ToList();
-            var hasMore = range.Length > normalizedLimit;
-
-            return new FeedResponseDto
-            {
-                PostIds = postIds,
-                NextCursor = hasMore && postIds.Count > 0 ? postIds[^1] : null
-            };
+            return await GetRedisFeedAsync(request, roleFlags, normalizedLimit, redisDb, feedKey, cancellationToken);
         }
 
         _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
+        return await GetSqlFeedAsync(request, roleFlags, normalizedLimit, cancellationToken);
+    }
 
+    private async Task<FeedResponseDto> GetRedisFeedAsync(
+        GetFeedQuery request,
+        RoleFlags roleFlags,
+        int normalizedLimit,
+        IDatabase redisDb,
+        string feedKey,
+        CancellationToken cancellationToken)
+    {
+        var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit + 1);
+        var idsOrdered = range.Select(v => (int)v).ToList();
+
+        if (idsOrdered.Count == 0)
+        {
+            return new FeedResponseDto();
+        }
+
+        var posts = await _dbContext.Posts.AsNoTracking()
+            .Where(p => idsOrdered.Contains(p.Id) && !p.IsDeleted)
+            .Select(p => new { p.Id, p.Visibility })
+            .ToListAsync(cancellationToken);
+
+        var postsById = posts.ToDictionary(p => p.Id);
+        var visibleOrdered = new List<int>();
+        foreach (var id in idsOrdered)
+        {
+            if (!postsById.TryGetValue(id, out var p)) continue;
+            if (IsVisible(p.Visibility, roleFlags))
+            {
+                visibleOrdered.Add(id);
+            }
+        }
+
+        return BuildResponse(visibleOrdered, normalizedLimit);
+    }
+
+    private async Task<FeedResponseDto> GetSqlFeedAsync(
+        GetFeedQuery request,
+        RoleFlags roleFlags,
+        int normalizedLimit,
+        CancellationToken cancellationToken)
+    {
         var query = from follow in _dbContext.Follows.AsNoTracking()
                     join post in _dbContext.Posts.AsNoTracking() on follow.FollowingId equals post.AuthorId
                     where follow.FollowerId == request.UserId && !post.IsDeleted
@@ -75,23 +107,42 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             }
         }
 
-        var posts = await query
+        var rawPosts = await query
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id)
             .Take(normalizedLimit + 1)
-            .Select(p => p.Id)
+            .Select(p => new { p.Id, p.Visibility })
             .ToListAsync(cancellationToken);
 
-        var hasMorePosts = posts.Count > normalizedLimit;
-        if (hasMorePosts)
-        {
-            posts = posts.Take(normalizedLimit).ToList();
-        }
+        var visibleOrdered = rawPosts
+            .Where(p => IsVisible(p.Visibility, roleFlags))
+            .Select(p => p.Id)
+            .ToList();
+
+        return BuildResponse(visibleOrdered, normalizedLimit);
+    }
+
+    private static FeedResponseDto BuildResponse(List<int> visibleOrdered, int normalizedLimit)
+    {
+        var visiblePage = visibleOrdered.Take(normalizedLimit).ToList();
+        var hasVisibleMore = visibleOrdered.Count > normalizedLimit;
 
         return new FeedResponseDto
         {
-            PostIds = posts,
-            NextCursor = hasMorePosts && posts.Count > 0 ? posts[^1] : null
+            PostIds = visiblePage,
+            NextCursor = hasVisibleMore && visiblePage.Count > 0 ? visiblePage[^1] : null
+        };
+    }
+
+    private static bool IsVisible(PostVisibility visibility, RoleFlags roles)
+    {
+        return visibility switch
+        {
+            PostVisibility.Public => true,
+            PostVisibility.PatientsOnly => roles.IsPatient || roles.IsDoctor,
+            PostVisibility.DoctorOnly => roles.IsDoctor,
+            PostVisibility.CaregiverOnly => roles.IsCaregiver || roles.IsDoctor,
+            _ => false
         };
     }
 
