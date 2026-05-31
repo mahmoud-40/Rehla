@@ -41,8 +41,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
-        var allowedVisibilityValues = allowedVisibilities.Select(v => (int)v).ToArray();
-        return await GetSqlFeedAsync(request, allowedVisibilityValues, normalizedLimit, cancellationToken);
+        return await GetSqlFeedAsync(request, roleFlags, normalizedLimit, cancellationToken);
     }
 
     private async Task<FeedResponseDto> GetRedisFeedAsync(
@@ -119,7 +118,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
     private async Task<FeedResponseDto> GetSqlFeedAsync(
         GetFeedQuery request,
-        int[] allowedVisibilityValues,
+        RoleFlags roleFlags,
         int normalizedLimit,
         CancellationToken cancellationToken)
     {
@@ -147,17 +146,19 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var rawPosts = await query
+            .Where(p => p.Visibility == PostVisibility.Public
+                || (roleFlags.IsDoctor && (p.Visibility == PostVisibility.DoctorOnly
+                    || p.Visibility == PostVisibility.PatientsOnly
+                    || p.Visibility == PostVisibility.CaregiverOnly))
+                || (!roleFlags.IsDoctor && roleFlags.IsPatient && p.Visibility == PostVisibility.PatientsOnly)
+                || (!roleFlags.IsDoctor && roleFlags.IsCaregiver && p.Visibility == PostVisibility.CaregiverOnly))
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id)
-            .Select(p => new { p.Id, p.Visibility })
+            .Take(normalizedLimit + 1)
+            .Select(p => p.Id)
             .ToListAsync(cancellationToken);
 
-        var visibleOrdered = rawPosts
-            .Where(p => allowedVisibilityValues.Contains((int)p.Visibility))
-            .Select(p => p.Id)
-            .ToList();
-
-        return BuildResponse(visibleOrdered, normalizedLimit);
+        return BuildResponse(rawPosts, normalizedLimit);
     }
 
     private static FeedResponseDto BuildResponse(List<int> visibleOrdered, int normalizedLimit)
