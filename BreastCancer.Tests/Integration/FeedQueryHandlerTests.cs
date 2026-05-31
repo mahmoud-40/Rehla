@@ -42,6 +42,13 @@ public sealed class FeedQueryHandlerTests
         await using var dbContext = new BreastCancerDB(options);
         var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
 
+        dbContext.Posts.AddRange(
+            new Post { Id = 6, AuthorId = "author-1", Content = "p6", CreatedAt = DateTime.UtcNow },
+            new Post { Id = 5, AuthorId = "author-1", Content = "p5", CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
+            new Post { Id = 4, AuthorId = "author-1", Content = "p4", CreatedAt = DateTime.UtcNow.AddMinutes(-2) },
+            new Post { Id = 3, AuthorId = "author-1", Content = "p3", CreatedAt = DateTime.UtcNow.AddMinutes(-3) });
+        await dbContext.SaveChangesAsync();
+
         var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
 
         var result = await handler.Handle(new GetFeedQuery("user-1", null, 3), CancellationToken.None);
@@ -132,6 +139,11 @@ public sealed class FeedQueryHandlerTests
         await using var dbContext = new BreastCancerDB(options);
         var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
 
+        dbContext.Posts.AddRange(
+            new Post { Id = 2, AuthorId = "author-1", Content = "p2", CreatedAt = DateTime.UtcNow },
+            new Post { Id = 1, AuthorId = "author-1", Content = "p1", CreatedAt = DateTime.UtcNow.AddMinutes(-1) });
+        await dbContext.SaveChangesAsync();
+
         var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
 
         var result = await handler.Handle(new GetFeedQuery("user-1", 3, 2), CancellationToken.None);
@@ -169,6 +181,12 @@ public sealed class FeedQueryHandlerTests
 
         await using var dbContext = new BreastCancerDB(options);
         var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
+
+        dbContext.Posts.AddRange(
+            new Post { Id = 5, AuthorId = "author-1", Content = "p5", CreatedAt = DateTime.UtcNow },
+            new Post { Id = 4, AuthorId = "author-1", Content = "p4", CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
+            new Post { Id = 3, AuthorId = "author-1", Content = "p3", CreatedAt = DateTime.UtcNow.AddMinutes(-2) });
+        await dbContext.SaveChangesAsync();
 
         var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
 
