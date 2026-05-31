@@ -41,7 +41,8 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
-        return await GetSqlFeedAsync(request, allowedVisibilities.ToArray(), normalizedLimit, cancellationToken);
+        var allowedVisibilityValues = allowedVisibilities.Select(v => (int)v).ToArray();
+        return await GetSqlFeedAsync(request, allowedVisibilityValues, normalizedLimit, cancellationToken);
     }
 
     private async Task<FeedResponseDto> GetRedisFeedAsync(
@@ -118,7 +119,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
     private async Task<FeedResponseDto> GetSqlFeedAsync(
         GetFeedQuery request,
-        PostVisibility[] allowedVisibilities,
+        int[] allowedVisibilityValues,
         int normalizedLimit,
         CancellationToken cancellationToken)
     {
@@ -146,14 +147,17 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var rawPosts = await query
-            .Where(p => allowedVisibilities.Contains(p.Visibility))
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id)
-            .Take(normalizedLimit + 1)
-            .Select(p => p.Id)
+            .Select(p => new { p.Id, p.Visibility })
             .ToListAsync(cancellationToken);
 
-        return BuildResponse(rawPosts, normalizedLimit);
+        var visibleOrdered = rawPosts
+            .Where(p => allowedVisibilityValues.Contains((int)p.Visibility))
+            .Select(p => p.Id)
+            .ToList();
+
+        return BuildResponse(visibleOrdered, normalizedLimit);
     }
 
     private static FeedResponseDto BuildResponse(List<int> visibleOrdered, int normalizedLimit)
