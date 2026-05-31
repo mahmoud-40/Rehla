@@ -148,6 +148,8 @@ namespace BreastCancer.Community.Controllers
                 return Unauthorized(new { message = "Could not identify user" });
             }
 
+            var roles = User.GetRoles();
+
             var effectiveLimit = limit ?? 20;
             if (effectiveLimit > 50)
             {
@@ -158,7 +160,7 @@ namespace BreastCancer.Community.Controllers
                 effectiveLimit = 1;
             }
 
-            var feed = await mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit), cancellationToken);
+            var feed = await mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit, roles), cancellationToken);
             return Ok(feed);
         }
     }

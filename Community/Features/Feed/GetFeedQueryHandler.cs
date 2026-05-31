@@ -95,6 +95,18 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         };
     }
 
+    private readonly record struct RoleFlags(bool IsDoctor, bool IsPatient, bool IsCaregiver)
+    {
+        public static RoleFlags Create(IReadOnlyCollection<string>? roles)
+        {
+            roles ??= Array.Empty<string>();
+            return new RoleFlags(
+                roles.Any(r => string.Equals(r, "Doctor", StringComparison.OrdinalIgnoreCase)),
+                roles.Any(r => string.Equals(r, "Patient", StringComparison.OrdinalIgnoreCase)),
+                roles.Any(r => string.Equals(r, "Caregiver", StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
     private static async Task<RedisValue[]> GetRedisRangeAsync(IDatabase redisDb, string feedKey, int? cursor, int limit)
     {
         if (!cursor.HasValue)
