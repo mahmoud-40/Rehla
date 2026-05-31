@@ -54,7 +54,6 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
     {
         var batchSize = normalizedLimit + 1;
         var visibleOrdered = new List<int>();
-        int? scannedLastId = null;
         var start = await GetRedisStartRankAsync(redisDb, feedKey, request.Cursor);
         var exhausted = false;
 
@@ -68,7 +67,6 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             }
 
             var idsOrdered = batch.Select(v => (int)v).ToList();
-            scannedLastId = idsOrdered[^1];
 
             var posts = await _dbContext.Posts.AsNoTracking()
                 .Where(p => idsOrdered.Contains(p.Id) && !p.IsDeleted)
@@ -103,17 +101,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             start += batch.Length;
         }
 
-        var response = BuildResponse(visibleOrdered, normalizedLimit);
-        if (response.PostIds.Count == 0 && !exhausted && scannedLastId.HasValue)
-        {
-            response = new FeedResponseDto
-            {
-                PostIds = response.PostIds,
-                NextCursor = scannedLastId.Value
-            };
-        }
-
-        return response;
+        return BuildResponse(visibleOrdered, normalizedLimit);
     }
 
     private async Task<FeedResponseDto> GetSqlFeedAsync(

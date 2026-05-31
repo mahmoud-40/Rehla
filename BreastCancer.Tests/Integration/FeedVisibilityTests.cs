@@ -74,4 +74,50 @@ public sealed class FeedVisibilityTests
         var contains = result.PostIds.Contains(1);
         contains.Should().Be(expectedVisible);
     }
+
+    [Theory]
+    [MemberData(nameof(VisibilityMatrix))]
+    public async Task FeedVisibility_AppliesFiltering_WhenRedisHit(string[] roles, PostVisibility visibility, bool expectedVisible)
+    {
+        var redisDbMock = new Mock<IDatabase>();
+        redisDbMock
+            .Setup(db => db.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        redisDbMock
+            .Setup(db => db.SortedSetRangeByRankAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                Order.Descending,
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue[] { "1" });
+
+        var multiplexerMock = new Mock<IConnectionMultiplexer>();
+        multiplexerMock
+            .Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
+            .Returns(redisDbMock.Object);
+
+        var options = new DbContextOptionsBuilder<BreastCancerDB>()
+            .UseInMemoryDatabase($"feed-visibility-redis-{Guid.NewGuid()}")
+            .Options;
+
+        await using var dbContext = new BreastCancerDB(options);
+        var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
+
+        var userId = "user-1";
+        var authorId = "author-1";
+
+        dbContext.Posts.Add(new Post { Id = 1, AuthorId = authorId, Content = "x", Visibility = visibility, CreatedAt = DateTime.UtcNow });
+
+        await dbContext.SaveChangesAsync();
+
+        var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
+
+        var query = new GetFeedQuery(userId, null, 10, roles);
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        var contains = result.PostIds.Contains(1);
+        contains.Should().Be(expectedVisible);
+    }
 }
