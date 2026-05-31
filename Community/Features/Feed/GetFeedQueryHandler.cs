@@ -1,8 +1,8 @@
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Context;
+using BreastCancer.Enum;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace BreastCancer.Community.Features.Feed;
@@ -29,29 +29,87 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var normalizedLimit = Math.Clamp(request.Limit, 1, 50);
+        var roleFlags = RoleFlags.Create(request.Roles);
+        var allowedVisibilities = GetAllowedVisibilities(roleFlags);
         var redisDb = _connectionMultiplexer.GetDatabase();
         var feedKey = BuildFeedKey(request.UserId);
 
         if (await redisDb.KeyExistsAsync(feedKey))
         {
             _logger.LogInformation("Feed cache hit for user {UserId}; retrieving feed from Redis.", request.UserId);
-            
-            var range = await GetRedisRangeAsync(redisDb, feedKey, request.Cursor, normalizedLimit + 1);
-            var postIds = range
-                .Take(normalizedLimit)
-                .Select(value => (int)value)
-                .ToList();
-            var hasMore = range.Length > normalizedLimit;
-
-            return new FeedResponseDto
-            {
-                PostIds = postIds,
-                NextCursor = hasMore && postIds.Count > 0 ? postIds[^1] : null
-            };
+            return await GetRedisFeedAsync(request, allowedVisibilities, normalizedLimit, redisDb, feedKey, cancellationToken);
         }
 
         _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
+        return await GetSqlFeedAsync(request, roleFlags, normalizedLimit, cancellationToken);
+    }
 
+    private async Task<FeedResponseDto> GetRedisFeedAsync(
+        GetFeedQuery request,
+        IReadOnlySet<PostVisibility> allowedVisibilities,
+        int normalizedLimit,
+        IDatabase redisDb,
+        string feedKey,
+        CancellationToken cancellationToken)
+    {
+        var batchSize = normalizedLimit + 1;
+        var visibleOrdered = new List<int>();
+        var start = await GetRedisStartRankAsync(redisDb, feedKey, request.Cursor);
+        var exhausted = false;
+
+        while (visibleOrdered.Count < normalizedLimit + 1)
+        {
+            var batch = await redisDb.SortedSetRangeByRankAsync(feedKey, start, start + batchSize - 1, Order.Descending);
+            if (batch.Length == 0)
+            {
+                exhausted = true;
+                break;
+            }
+
+            var idsOrdered = batch.Select(v => (int)v).ToList();
+
+            var posts = await _dbContext.Posts.AsNoTracking()
+                .Where(p => idsOrdered.Contains(p.Id) && !p.IsDeleted)
+                .Select(p => new { p.Id, p.Visibility })
+                .ToListAsync(cancellationToken);
+
+            var postsById = posts.ToDictionary(p => p.Id);
+            foreach (var id in idsOrdered)
+            {
+                if (visibleOrdered.Count >= normalizedLimit + 1)
+                {
+                    break;
+                }
+
+                if (!postsById.TryGetValue(id, out var p))
+                {
+                    continue;
+                }
+
+                if (allowedVisibilities.Contains(p.Visibility))
+                {
+                    visibleOrdered.Add(id);
+                }
+            }
+
+            if (batch.Length < batchSize)
+            {
+                exhausted = true;
+                break;
+            }
+
+            start += batch.Length;
+        }
+
+        return BuildResponse(visibleOrdered, normalizedLimit);
+    }
+
+    private async Task<FeedResponseDto> GetSqlFeedAsync(
+        GetFeedQuery request,
+        RoleFlags roleFlags,
+        int normalizedLimit,
+        CancellationToken cancellationToken)
+    {
         var query = from follow in _dbContext.Follows.AsNoTracking()
                     join post in _dbContext.Posts.AsNoTracking() on follow.FollowingId equals post.AuthorId
                     where follow.FollowerId == request.UserId && !post.IsDeleted
@@ -75,42 +133,85 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             }
         }
 
-        var posts = await query
+        var rawPosts = await query
+            .Where(p => p.Visibility == PostVisibility.Public
+                || (roleFlags.IsDoctor && (p.Visibility == PostVisibility.DoctorOnly
+                    || p.Visibility == PostVisibility.PatientsOnly
+                    || p.Visibility == PostVisibility.CaregiverOnly))
+                || (!roleFlags.IsDoctor && roleFlags.IsPatient && p.Visibility == PostVisibility.PatientsOnly)
+                || (!roleFlags.IsDoctor && roleFlags.IsCaregiver && p.Visibility == PostVisibility.CaregiverOnly))
             .OrderByDescending(p => p.CreatedAt)
             .ThenByDescending(p => p.Id)
             .Take(normalizedLimit + 1)
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
 
-        var hasMorePosts = posts.Count > normalizedLimit;
-        if (hasMorePosts)
-        {
-            posts = posts.Take(normalizedLimit).ToList();
-        }
+        return BuildResponse(rawPosts, normalizedLimit);
+    }
+
+    private static FeedResponseDto BuildResponse(List<int> visibleOrdered, int normalizedLimit)
+    {
+        var visiblePage = visibleOrdered.Take(normalizedLimit).ToList();
+        var hasVisibleMore = visibleOrdered.Count > normalizedLimit;
 
         return new FeedResponseDto
         {
-            PostIds = posts,
-            NextCursor = hasMorePosts && posts.Count > 0 ? posts[^1] : null
+            PostIds = visiblePage,
+            NextCursor = hasVisibleMore && visiblePage.Count > 0 ? visiblePage[^1] : null
         };
     }
 
-    private static async Task<RedisValue[]> GetRedisRangeAsync(IDatabase redisDb, string feedKey, int? cursor, int limit)
+    private static IReadOnlySet<PostVisibility> GetAllowedVisibilities(RoleFlags roles)
+    {
+        var allowed = new HashSet<PostVisibility> { PostVisibility.Public };
+
+        if (roles.IsDoctor)
+        {
+            allowed.Add(PostVisibility.DoctorOnly);
+            allowed.Add(PostVisibility.PatientsOnly);
+            allowed.Add(PostVisibility.CaregiverOnly);
+            return allowed;
+        }
+
+        if (roles.IsPatient)
+        {
+            allowed.Add(PostVisibility.PatientsOnly);
+        }
+
+        if (roles.IsCaregiver)
+        {
+            allowed.Add(PostVisibility.CaregiverOnly);
+        }
+
+        return allowed;
+    }
+
+    private readonly record struct RoleFlags(bool IsDoctor, bool IsPatient, bool IsCaregiver)
+    {
+        public static RoleFlags Create(IReadOnlyCollection<string>? roles)
+        {
+            roles ??= Array.Empty<string>();
+            return new RoleFlags(
+                roles.Any(r => string.Equals(r, "Doctor", StringComparison.OrdinalIgnoreCase)),
+                roles.Any(r => string.Equals(r, "Patient", StringComparison.OrdinalIgnoreCase)),
+                roles.Any(r => string.Equals(r, "Caregiver", StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    private static async Task<long> GetRedisStartRankAsync(IDatabase redisDb, string feedKey, int? cursor)
     {
         if (!cursor.HasValue)
         {
-            return await redisDb.SortedSetRangeByRankAsync(feedKey, 0, limit - 1, Order.Descending);
+            return 0;
         }
 
         var rank = await redisDb.SortedSetRankAsync(feedKey, cursor.Value.ToString(), Order.Descending);
         if (!rank.HasValue)
         {
-            return await redisDb.SortedSetRangeByRankAsync(feedKey, 0, limit - 1, Order.Descending);
+            return 0;
         }
 
-        var start = rank.Value + 1;
-        var stop = start + limit - 1;
-        return await redisDb.SortedSetRangeByRankAsync(feedKey, start, stop, Order.Descending);
+        return rank.Value + 1;
     }
 
     private static string BuildFeedKey(string userId) => $"{FeedKeyPrefix}{userId}";
