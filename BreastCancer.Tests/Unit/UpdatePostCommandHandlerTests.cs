@@ -67,7 +67,7 @@ public sealed class UpdatePostCommandHandlerTests
         result.Content.Should().Be("new");
         result.PostVisibility.Should().Be(PostVisibility.DoctorOnly);
         result.IsEdited.Should().BeTrue();
-        cache.Verify(c => c.SetAsync("post:1", It.IsAny<PostDTO>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        cache.Verify(c => c.SetAsync("post:1", It.IsAny<PostDTO>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static BreastCancerDB CreateDbContext()

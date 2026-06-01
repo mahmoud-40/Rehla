@@ -44,7 +44,7 @@ public sealed class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var updatedDto = _mapper.Map<PostDTO>(post);
-        await _cacheService.SetAsync(BuildPostCacheKey(post.Id), updatedDto, cancellationToken: cancellationToken);
+        await _cacheService.SetAsync(BuildPostCacheKey(post.Id), updatedDto, TimeSpan.FromHours(1), cancellationToken);
 
         return updatedDto;
     }
