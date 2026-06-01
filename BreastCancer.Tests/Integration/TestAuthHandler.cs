@@ -10,6 +10,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 {
     public const string SchemeName = "Test";
     public const string UserIdHeader = "X-User-Id";
+    public const string RolesHeader = "X-Roles";
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -31,14 +32,21 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             ? headerValue.ToString()
             : "test-user";
 
-        var claims = new[]
+        var roles = Request.Headers.TryGetValue(RolesHeader, out var rolesHeader)
+            ? rolesHeader.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : new[] { "Admin", "Doctor" };
+
+        var claims = new List<Claim>
         {
             new Claim("sub", userId),
             new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim(ClaimTypes.Name, "integration-test-user"),
-            new Claim(ClaimTypes.Role, "Admin"),
-            new Claim(ClaimTypes.Role, "Doctor")
+            new Claim(ClaimTypes.Name, "integration-test-user")
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);

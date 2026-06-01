@@ -2,8 +2,15 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Collections.Generic;
 using BreastCancer.Community.Controllers;
+using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.DTO.response;
+using BreastCancer.Community.Exceptions;
+using BreastCancer.Community.Features.DeletePost;
 using BreastCancer.Community.Features.Feed;
+using BreastCancer.Community.Features.GetPost;
+using BreastCancer.Community.Features.UpdatePost;
+using BreastCancer.Enum;
+using MediatR;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
@@ -62,10 +69,151 @@ public class CommunityControllerIntegrationTests
         fake.LastGetFeedQuery!.Limit.Should().Be(50);
     }
 
-    private static HttpClient CreateAuthenticatedClient(WebApplication app, string userId)
+    [Fact]
+    public async Task GetPost_ReturnsUnauthorized_WhenNotAuthenticated()
+    {
+        await using var app = await BuildAppAsync(new FakeMediator());
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, " ");
+
+        var response = await client.GetAsync("/api/community/posts/10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetPost_ReturnsOk_WithPostFromMediator()
+    {
+        var fake = new FakeMediator();
+        fake.GetPostResponse = new PostDTO
+        {
+            Id = 10,
+            AuthorId = "author-1",
+            Content = "Hello",
+            PostType = PostType.Story,
+            PostVisibility = PostVisibility.Public,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
+            IsEdited = true
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1", new[] { "Doctor" });
+
+        var response = await client.GetAsync("/api/community/posts/10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payload = await response.Content.ReadFromJsonAsync<PostDTO>();
+        payload.Should().NotBeNull();
+        payload!.Id.Should().Be(10);
+        payload.IsEdited.Should().BeTrue();
+        payload.UpdatedAt.Should().BeCloseTo(fake.GetPostResponse.UpdatedAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task GetPost_ReturnsForbidden_WhenVisibilityBlocked()
+    {
+        var fake = new FakeMediator
+        {
+            GetPostException = new PostAccessForbiddenException("blocked")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1", new[] { "Patient" });
+
+        var response = await client.GetAsync("/api/community/posts/10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task UpdatePost_ReturnsOk_WithUpdatedPost()
+    {
+        var fake = new FakeMediator();
+        var updatedAt = DateTime.UtcNow;
+        fake.UpdatePostResponse = new PostDTO
+        {
+            Id = 12,
+            AuthorId = "user-1",
+            Content = "Updated",
+            PostType = PostType.Question,
+            PostVisibility = PostVisibility.CaregiverOnly,
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+            UpdatedAt = updatedAt,
+            IsEdited = true
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        var request = new UpdatePostDTO { Content = "Updated", Visibility = PostVisibility.CaregiverOnly };
+        var response = await client.PutAsJsonAsync("/api/community/posts/12", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.LastUpdatePostCommand.Should().NotBeNull();
+        fake.LastUpdatePostCommand!.PostId.Should().Be(12);
+        fake.LastUpdatePostCommand.Post.Content.Should().Be("Updated");
+        fake.LastUpdatePostCommand.Post.Visibility.Should().Be(PostVisibility.CaregiverOnly);
+        var payload = await response.Content.ReadFromJsonAsync<PostDTO>();
+        payload.Should().NotBeNull();
+        payload!.IsEdited.Should().BeTrue();
+        payload.UpdatedAt.Should().BeCloseTo(updatedAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task UpdatePost_ReturnsForbidden_WhenNotAuthor()
+    {
+        var fake = new FakeMediator
+        {
+            UpdatePostException = new PostAccessForbiddenException("forbidden")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-2");
+
+        var request = new UpdatePostDTO { Content = "Updated", Visibility = PostVisibility.Public };
+        var response = await client.PutAsJsonAsync("/api/community/posts/12", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task DeletePost_ReturnsNoContent_WhenAuthor()
+    {
+        var fake = new FakeMediator();
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        var response = await client.DeleteAsync("/api/community/posts/20");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.LastDeletePostCommand.Should().NotBeNull();
+        fake.LastDeletePostCommand!.PostId.Should().Be(20);
+        fake.LastDeletePostCommand.RequesterId.Should().Be("user-1");
+    }
+
+    [Fact]
+    public async Task DeletePost_ReturnsNoContent_WhenModerator()
+    {
+        var fake = new FakeMediator();
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "moderator-1", new[] { "MODERATOR" });
+
+        var response = await client.DeleteAsync("/api/community/posts/21");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.LastDeletePostCommand.Should().NotBeNull();
+        fake.LastDeletePostCommand!.Roles.Should().Contain("MODERATOR");
+    }
+
+    private static HttpClient CreateAuthenticatedClient(WebApplication app, string userId, IReadOnlyCollection<string>? roles = null)
     {
         var client = app.GetTestClient();
         client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, userId);
+        if (roles is not null)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, string.Join(',', roles));
+        }
         return client;
     }
 
@@ -96,7 +244,35 @@ public class CommunityControllerIntegrationTests
     private sealed class FakeMediator : IMediator
     {
         public GetFeedQuery? LastGetFeedQuery { get; private set; }
+        public GetPostQuery? LastGetPostQuery { get; private set; }
+        public UpdatePostCommand? LastUpdatePostCommand { get; private set; }
+        public DeletePostCommand? LastDeletePostCommand { get; private set; }
         public FeedResponseDto Response { get; set; } = new FeedResponseDto { PostIds = new List<int> { 1, 2, 3 }, NextCursor = 3 };
+        public PostDTO GetPostResponse { get; set; } = new PostDTO
+        {
+            Id = 1,
+            AuthorId = "author-1",
+            Content = "content",
+            PostType = PostType.Story,
+            PostVisibility = PostVisibility.Public,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-10),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-10),
+            IsEdited = false
+        };
+        public PostDTO UpdatePostResponse { get; set; } = new PostDTO
+        {
+            Id = 1,
+            AuthorId = "author-1",
+            Content = "content",
+            PostType = PostType.Story,
+            PostVisibility = PostVisibility.Public,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-10),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-5),
+            IsEdited = true
+        };
+        public Exception? GetPostException { get; set; }
+        public Exception? UpdatePostException { get; set; }
+        public Exception? DeletePostException { get; set; }
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
@@ -104,6 +280,39 @@ public class CommunityControllerIntegrationTests
             {
                 LastGetFeedQuery = q;
                 return Task.FromResult((TResponse)(object)Response);
+            }
+
+            if (request is GetPostQuery getPostQuery)
+            {
+                LastGetPostQuery = getPostQuery;
+                if (GetPostException is not null)
+                {
+                    return Task.FromException<TResponse>(GetPostException);
+                }
+
+                return Task.FromResult((TResponse)(object)GetPostResponse);
+            }
+
+            if (request is UpdatePostCommand updatePostCommand)
+            {
+                LastUpdatePostCommand = updatePostCommand;
+                if (UpdatePostException is not null)
+                {
+                    return Task.FromException<TResponse>(UpdatePostException);
+                }
+
+                return Task.FromResult((TResponse)(object)UpdatePostResponse);
+            }
+
+            if (request is DeletePostCommand deletePostCommand)
+            {
+                LastDeletePostCommand = deletePostCommand;
+                if (DeletePostException is not null)
+                {
+                    return Task.FromException<TResponse>(DeletePostException);
+                }
+
+                return Task.FromResult((TResponse)(object)MediatR.Unit.Value);
             }
 
             return Task.FromResult(default(TResponse)!);
@@ -115,6 +324,39 @@ public class CommunityControllerIntegrationTests
             {
                 LastGetFeedQuery = q;
                 return Task.FromResult<object?>(Response);
+            }
+
+            if (request is GetPostQuery getPostQuery)
+            {
+                LastGetPostQuery = getPostQuery;
+                if (GetPostException is not null)
+                {
+                    return Task.FromException<object?>(GetPostException);
+                }
+
+                return Task.FromResult<object?>(GetPostResponse);
+            }
+
+            if (request is UpdatePostCommand updatePostCommand)
+            {
+                LastUpdatePostCommand = updatePostCommand;
+                if (UpdatePostException is not null)
+                {
+                    return Task.FromException<object?>(UpdatePostException);
+                }
+
+                return Task.FromResult<object?>(UpdatePostResponse);
+            }
+
+            if (request is DeletePostCommand deletePostCommand)
+            {
+                LastDeletePostCommand = deletePostCommand;
+                if (DeletePostException is not null)
+                {
+                    return Task.FromException<object?>(DeletePostException);
+                }
+
+                return Task.FromResult<object?>(MediatR.Unit.Value);
             }
 
             return Task.FromResult<object?>(null);
