@@ -28,7 +28,8 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
             throw new PostNotFoundException("Post not found.");
         }
 
-        if (!PostVisibilityEvaluator.CanView(post.Visibility, request.Roles))
+        var isAuthor = string.Equals(post.AuthorId, request.RequesterId, StringComparison.OrdinalIgnoreCase);
+        if (!isAuthor && !PostVisibilityEvaluator.CanView(post.Visibility, request.Roles))
         {
             throw new PostAccessForbiddenException("You are not allowed to view this post.");
         }
