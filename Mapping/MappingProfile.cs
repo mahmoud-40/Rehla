@@ -234,7 +234,9 @@ namespace BreastCancer.Mapping
             CreateMap<Post, PostDTO>()
                 .ForMember(dest => dest.PostType, opt => opt.MapFrom(src => src.Type))
                 .ForMember(dest => dest.PostVisibility, opt => opt.MapFrom(src => src.Visibility))
-                .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls));
+                .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
+                .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(src => src.IsEdited));
 
             #endregion
 

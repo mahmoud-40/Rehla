@@ -23,6 +23,8 @@ namespace BreastCancer.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        public bool IsEdited { get; set; }
+
         public bool IsDeleted { get; set; } = false;
 
         public virtual ApplicationUser Author { get; set; } = null!;

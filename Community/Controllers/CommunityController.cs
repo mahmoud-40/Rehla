@@ -1,7 +1,7 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features;
 using BreastCancer.Community.Features.Feed;
+using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Community.Features.CreatePost;
 using BreastCancer.Community.Features.FollowUser;
 using BreastCancer.Community.Features.UnfollowUser;
@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using BreastCancer.Community.Features.UpdatePost;
+using BreastCancer.Community.Features.DeletePost;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -162,6 +164,108 @@ namespace BreastCancer.Community.Controllers
 
             var feed = await mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit, roles), cancellationToken);
             return Ok(feed);
+        }
+
+        [HttpGet("posts/{postId:int}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Get a community post")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Post retrieved successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found")]
+        public async Task<IActionResult> GetPost([FromRoute] int postId, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            var roles = User.GetRoles();
+            try
+            {
+                var post = await mediator.Send(new GetPostQuery(postId, userId, roles), cancellationToken);
+                return Ok(post);
+            }
+            catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (PostAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("posts/{postId:int}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Update a community post")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Post updated successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        public async Task<IActionResult> UpdatePost([FromRoute] int postId, [FromBody] UpdatePostDTO updatePostDto, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            try
+            {
+                var post = await mediator.Send(new UpdatePostCommand(postId, updatePostDto, userId), cancellationToken);
+                return Ok(post);
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
+            }
+            catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (PostAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("posts/{postId:int}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Delete a community post")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Post deleted successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found")]
+        public async Task<IActionResult> DeletePost([FromRoute] int postId, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            var roles = User.GetRoles();
+            try
+            {
+                await mediator.Send(new DeletePostCommand(postId, userId, roles), cancellationToken);
+                return NoContent();
+            }
+            catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (PostAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
         }
     }
 }

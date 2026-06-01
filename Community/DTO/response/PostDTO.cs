@@ -13,5 +13,7 @@ namespace BreastCancer.Community.DTO.response
         [JsonPropertyName("mediaUrls")]
         public IReadOnlyCollection<string>? MediaUrls { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public bool IsEdited { get; set; }
     }
 }

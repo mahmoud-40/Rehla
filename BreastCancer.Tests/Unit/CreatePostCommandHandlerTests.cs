@@ -106,7 +106,9 @@ public sealed class CreatePostCommandHandlerTests
                 PostType = post.Type,
                 PostVisibility = post.Visibility,
                 MediaUrls = post.MediaUrls,
-                CreatedAt = post.CreatedAt
+                CreatedAt = post.CreatedAt,
+                UpdatedAt = post.UpdatedAt,
+                IsEdited = post.IsEdited
             });
 
         unitOfWork.SetupGet(u => u.PostRepository).Returns(repository.Object);
