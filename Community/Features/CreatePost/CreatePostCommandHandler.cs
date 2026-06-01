@@ -3,6 +3,7 @@ using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Events;
 using BreastCancer.Community.Events.Models;
 using BreastCancer.Community.Exceptions;
+using BreastCancer.Community.Services.Interface;
 using BreastCancer.Enum;
 using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
@@ -12,15 +13,18 @@ namespace BreastCancer.Community.Features.CreatePost;
 
 public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, PostDTO>
 {
+    private const string PostCacheKeyPrefix = "post:";
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cacheService;
 
-    public CreatePostCommandHandler(IMapper mapper, IPublisher publisher, IUnitOfWork unitOfWork)
+    public CreatePostCommandHandler(IMapper mapper, IPublisher publisher, IUnitOfWork unitOfWork, ICacheService cacheService)
     {
         _mapper = mapper;
         _publisher = publisher;
         _unitOfWork = unitOfWork;
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     public async Task<PostDTO> Handle(CreatePostCommand request, CancellationToken cancellationToken)
@@ -56,8 +60,13 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             throw;
         }
 
+        var dto = _mapper.Map<PostDTO>(post);
+        await _cacheService.SetAsync(BuildPostCacheKey(post.Id), dto, TimeSpan.FromHours(1), cancellationToken);
+
         await _publisher.Publish(new PostCreatedEvent(post.Id, post.AuthorId, post.Visibility), cancellationToken);
 
-        return _mapper.Map<PostDTO>(post);
+        return dto;
     }
+
+    private static string BuildPostCacheKey(int postId) => "post:" + postId;
 }
