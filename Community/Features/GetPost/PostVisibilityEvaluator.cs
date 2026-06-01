@@ -1,6 +1,6 @@
 using BreastCancer.Enum;
 
-namespace BreastCancer.Community.Features.Posts;
+namespace BreastCancer.Community.Features.GetPost;
 
 internal static class PostVisibilityEvaluator
 {

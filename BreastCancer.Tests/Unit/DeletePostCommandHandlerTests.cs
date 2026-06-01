@@ -1,5 +1,5 @@
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features.Posts;
+using BreastCancer.Community.Features.DeletePost;
 using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
 using BreastCancer.Models;

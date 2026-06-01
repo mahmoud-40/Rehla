@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace BreastCancer.Community.Features.Posts;
+namespace BreastCancer.Community.Exceptions;
 
 [Serializable]
 public sealed class PostNotFoundException : Exception

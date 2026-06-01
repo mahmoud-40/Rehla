@@ -1,7 +1,7 @@
 using AutoMapper;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features.Posts;
+using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;

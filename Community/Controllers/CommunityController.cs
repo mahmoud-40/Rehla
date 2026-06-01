@@ -1,9 +1,7 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features;
 using BreastCancer.Community.Features.Feed;
-using BreastCancer.Community.Features.Posts;
-using BreastCancer.Community.DTO.request;
+using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Community.Features.CreatePost;
 using BreastCancer.Community.Features.FollowUser;
 using BreastCancer.Community.Features.UnfollowUser;
@@ -14,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using BreastCancer.Community.Features.UpdatePost;
+using BreastCancer.Community.Features.DeletePost;
 
 namespace BreastCancer.Community.Controllers
 {

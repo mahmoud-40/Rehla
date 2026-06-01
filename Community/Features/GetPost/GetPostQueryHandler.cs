@@ -5,7 +5,7 @@ using BreastCancer.Context;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
 
-namespace BreastCancer.Community.Features.Posts;
+namespace BreastCancer.Community.Features.GetPost;
 
 public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
 {
