@@ -56,6 +56,7 @@ public sealed class CreatePostCommandHandlerTests
         result.PostType.Should().Be(PostType.DoctorUpdate);
         result.PostVisibility.Should().Be(PostVisibility.DoctorOnly);
         result.MediaUrls.Should().ContainSingle("https://media");
+        sut.CacheService.Verify(c => c.SetAsync("post:" + result.Id, It.IsAny<PostDTO>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()), Times.Once);
         sut.Publisher.Verify(p => p.Publish(It.IsAny<PostCreatedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
         sut.UnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
     }
@@ -78,6 +79,7 @@ public sealed class CreatePostCommandHandlerTests
 
         result.AuthorId.Should().Be("patient-1");
         result.PostType.Should().Be(PostType.Story);
+        sut.CacheService.Verify(c => c.SetAsync("post:" + result.Id, It.IsAny<PostDTO>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()), Times.Once);
         sut.Publisher.Verify(p => p.Publish(It.IsAny<PostCreatedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -86,6 +88,7 @@ public sealed class CreatePostCommandHandlerTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var repository = new Mock<IPostRepository>();
         var publisher = new Mock<IPublisher>();
+        var cacheService = new Mock<BreastCancer.Community.Services.Interface.ICacheService>();
         var transaction = new Mock<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>();
 
         var mapper = new Mock<IMapper>();
@@ -117,9 +120,9 @@ public sealed class CreatePostCommandHandlerTests
 
         repository.Setup(r => r.AddAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
 
-        var handler = new CreatePostCommandHandler(mapper.Object, publisher.Object, unitOfWork.Object);
-        return new Sut(handler, unitOfWork, publisher);
+        var handler = new CreatePostCommandHandler(mapper.Object, publisher.Object, unitOfWork.Object, cacheService.Object);
+        return new Sut(handler, unitOfWork, publisher, cacheService);
     }
 
-    private sealed record Sut(CreatePostCommandHandler Handler, Mock<IUnitOfWork> UnitOfWork, Mock<IPublisher> Publisher);
+    private sealed record Sut(CreatePostCommandHandler Handler, Mock<IUnitOfWork> UnitOfWork, Mock<IPublisher> Publisher, Mock<BreastCancer.Community.Services.Interface.ICacheService> CacheService);
 }
