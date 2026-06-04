@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Collections.Generic;
+using System.Linq;
 using BreastCancer.Community.Controllers;
 using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.DTO.response;
@@ -10,7 +11,6 @@ using BreastCancer.Community.Features.Feed;
 using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Community.Features.UpdatePost;
 using BreastCancer.Enum;
-using MediatR;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
@@ -40,7 +40,16 @@ public class CommunityControllerIntegrationTests
     public async Task GetFeed_ReturnsOk_WithFeedFromMediator()
     {
         var fake = new FakeMediator();
-        fake.Response = new FeedResponseDto { PostIds = new List<int> { 10, 20, 30 }, NextCursor = 30 };
+        fake.Response = new FeedResponseDto
+        {
+            Posts = new List<PostDTO>
+            {
+                new() { Id = 10 },
+                new() { Id = 20 },
+                new() { Id = 30 }
+            },
+            NextCursor = 30
+        };
 
         await using var app = await BuildAppAsync(fake);
         using var client = CreateAuthenticatedClient(app, "user-1");
@@ -50,7 +59,7 @@ public class CommunityControllerIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<FeedResponseDto>();
         payload.Should().NotBeNull();
-        payload!.PostIds.Should().ContainInOrder(new[] { 10, 20, 30 });
+        payload!.Posts.Select(p => p.Id).Should().ContainInOrder(new[] { 10, 20, 30 });
         payload.NextCursor.Should().Be(30);
     }
 
@@ -247,7 +256,16 @@ public class CommunityControllerIntegrationTests
         public GetPostQuery? LastGetPostQuery { get; private set; }
         public UpdatePostCommand? LastUpdatePostCommand { get; private set; }
         public DeletePostCommand? LastDeletePostCommand { get; private set; }
-        public FeedResponseDto Response { get; set; } = new FeedResponseDto { PostIds = new List<int> { 1, 2, 3 }, NextCursor = 3 };
+        public FeedResponseDto Response { get; set; } = new FeedResponseDto
+        {
+            Posts = new List<PostDTO>
+            {
+                new() { Id = 1 },
+                new() { Id = 2 },
+                new() { Id = 3 }
+            },
+            NextCursor = 3
+        };
         public PostDTO GetPostResponse { get; set; } = new PostDTO
         {
             Id = 1,
