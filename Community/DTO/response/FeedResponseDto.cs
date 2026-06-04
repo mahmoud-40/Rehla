@@ -2,6 +2,6 @@ namespace BreastCancer.Community.DTO.response;
 
 public sealed class FeedResponseDto
 {
-    public IReadOnlyList<int> PostIds { get; init; } = Array.Empty<int>();
+    public IReadOnlyList<PostDTO> Posts { get; init; } = Array.Empty<PostDTO>();
     public int? NextCursor { get; init; }
 }

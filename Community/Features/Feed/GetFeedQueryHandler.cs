@@ -1,6 +1,8 @@
 using BreastCancer.Community.DTO.response;
+using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
 using BreastCancer.Enum;
+using BreastCancer.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -10,14 +12,23 @@ namespace BreastCancer.Community.Features.Feed;
 public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResponseDto>
 {
     private const string FeedKeyPrefix = "rehla:community:feed:";
+    private const string PostCacheKeyPrefix = "post:";
+    private static readonly TimeSpan PostCacheTtl = TimeSpan.FromHours(1);
+
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly BreastCancerDB _dbContext;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<GetFeedQueryHandler> _logger;
 
-    public GetFeedQueryHandler(IConnectionMultiplexer connectionMultiplexer, BreastCancerDB dbContext, ILogger<GetFeedQueryHandler> logger)
+    public GetFeedQueryHandler(
+        IConnectionMultiplexer connectionMultiplexer,
+        BreastCancerDB dbContext,
+        ICacheService cacheService,
+        ILogger<GetFeedQueryHandler> logger)
     {
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -34,77 +45,50 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         var redisDb = _connectionMultiplexer.GetDatabase();
         var feedKey = BuildFeedKey(request.UserId);
 
+        List<int>? feedIds = null;
+
         if (await redisDb.KeyExistsAsync(feedKey))
         {
-            _logger.LogInformation("Feed cache hit for user {UserId}; retrieving feed from Redis.", request.UserId);
-            return await GetRedisFeedAsync(request, allowedVisibilities, normalizedLimit, redisDb, feedKey, cancellationToken);
+            feedIds = await GetFeedIdsFromRedisAsync(request, normalizedLimit, redisDb, feedKey);
+
+            if (feedIds != null)
+            {
+                _logger.LogInformation("Feed cache hit for user {UserId}; retrieving feed IDs from Redis.", request.UserId);
+            }
+            else
+            {
+                _logger.LogInformation("Feed cache hit, but cursor {Cursor} not found in Redis. Falling back to SQL for deep pagination.", request.Cursor);
+            }
         }
 
-        _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
-        return await GetSqlFeedAsync(request, roleFlags, normalizedLimit, cancellationToken);
-    }
-
-    private async Task<FeedResponseDto> GetRedisFeedAsync(
-        GetFeedQuery request,
-        IReadOnlySet<PostVisibility> allowedVisibilities,
-        int normalizedLimit,
-        IDatabase redisDb,
-        string feedKey,
-        CancellationToken cancellationToken)
-    {
-        var batchSize = normalizedLimit + 1;
-        var visibleOrdered = new List<int>();
-        var start = await GetRedisStartRankAsync(redisDb, feedKey, request.Cursor);
-        var exhausted = false;
-
-        while (visibleOrdered.Count < normalizedLimit + 1)
+        if (feedIds == null)
         {
-            var batch = await redisDb.SortedSetRangeByRankAsync(feedKey, start, start + batchSize - 1, Order.Descending);
-            if (batch.Length == 0)
-            {
-                exhausted = true;
-                break;
-            }
-
-            var idsOrdered = batch.Select(v => (int)v).ToList();
-
-            var posts = await _dbContext.Posts.AsNoTracking()
-                .Where(p => idsOrdered.Contains(p.Id) && !p.IsDeleted)
-                .Select(p => new { p.Id, p.Visibility })
-                .ToListAsync(cancellationToken);
-
-            var postsById = posts.ToDictionary(p => p.Id);
-            foreach (var id in idsOrdered)
-            {
-                if (visibleOrdered.Count >= normalizedLimit + 1)
-                {
-                    break;
-                }
-
-                if (!postsById.TryGetValue(id, out var p))
-                {
-                    continue;
-                }
-
-                if (allowedVisibilities.Contains(p.Visibility))
-                {
-                    visibleOrdered.Add(id);
-                }
-            }
-
-            if (batch.Length < batchSize)
-            {
-                exhausted = true;
-                break;
-            }
-
-            start += batch.Length;
+            _logger.LogInformation("Feed cache miss for user {UserId}; falling back to SQL feed query.", request.UserId);
+            feedIds = await GetFeedIdsFromSqlAsync(request, roleFlags, normalizedLimit, cancellationToken);
         }
 
-        return BuildResponse(visibleOrdered, normalizedLimit);
+        var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
+        return BuildResponse(hydratedPosts, normalizedLimit);
     }
 
-    private async Task<FeedResponseDto> GetSqlFeedAsync(
+    private async Task<List<int>?> GetFeedIdsFromRedisAsync(
+            GetFeedQuery request,
+            int normalizedLimit,
+            IDatabase redisDb,
+            string feedKey)
+    {
+        var fetchLimit = normalizedLimit * 2;
+
+        var start = await GetRedisStartRankAsync(redisDb, feedKey, request.Cursor);
+
+        if (start == null) return null;
+
+        var batch = await redisDb.SortedSetRangeByRankAsync(feedKey, start.Value, start.Value + fetchLimit, Order.Descending);
+
+        return batch.Select(v => (int)v).ToList();
+    }
+
+    private async Task<List<int>> GetFeedIdsFromSqlAsync(
         GetFeedQuery request,
         RoleFlags roleFlags,
         int normalizedLimit,
@@ -133,11 +117,9 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             }
         }
 
-        var rawPosts = await query
+        return await query
             .Where(p => p.Visibility == PostVisibility.Public
-                || (roleFlags.IsDoctor && (p.Visibility == PostVisibility.DoctorOnly
-                    || p.Visibility == PostVisibility.PatientsOnly
-                    || p.Visibility == PostVisibility.CaregiverOnly))
+                || (roleFlags.IsDoctor && (p.Visibility == PostVisibility.DoctorOnly || p.Visibility == PostVisibility.PatientsOnly || p.Visibility == PostVisibility.CaregiverOnly))
                 || (!roleFlags.IsDoctor && roleFlags.IsPatient && p.Visibility == PostVisibility.PatientsOnly)
                 || (!roleFlags.IsDoctor && roleFlags.IsCaregiver && p.Visibility == PostVisibility.CaregiverOnly))
             .OrderByDescending(p => p.CreatedAt)
@@ -145,44 +127,94 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             .Take(normalizedLimit + 1)
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
-
-        return BuildResponse(rawPosts, normalizedLimit);
     }
 
-    private static FeedResponseDto BuildResponse(List<int> visibleOrdered, int normalizedLimit)
+    private async Task<List<PostDTO>> HydratePostsAsync(
+        List<int> postIds,
+        RoleFlags roleFlags,
+        CancellationToken cancellationToken)
     {
-        var visiblePage = visibleOrdered.Take(normalizedLimit).ToList();
-        var hasVisibleMore = visibleOrdered.Count > normalizedLimit;
+        if (postIds.Count == 0) return new List<PostDTO>();
+
+        var results = new Dictionary<int, PostDTO>(postIds.Count);
+        var missedIds = new List<int>();
+
+        // 1. Check Cache 
+        foreach (var id in postIds)
+        {
+            var cacheKey = $"{PostCacheKeyPrefix}{id}";
+            var post = await _cacheService.GetAsync<PostDTO>(cacheKey, cancellationToken);
+
+            if (post != null)
+                results[id] = post;
+            else
+                missedIds.Add(id);
+        }
+
+        // 2. Cache Miss - Hydrate from DB
+        if (missedIds.Any())
+        {
+            var postsFromDb = await _dbContext.Posts
+                .AsNoTracking()
+                .Include(p => p.Author)
+                .Where(p => missedIds.Contains(p.Id) && !p.IsDeleted)
+                .Select(p => new PostDTO
+                {
+                    Id = p.Id,
+                    AuthorId = p.AuthorId,
+                    Content = p.Content,
+                    PostType = p.Type,
+                    PostVisibility = p.Visibility,
+                    MediaUrls = p.MediaUrls,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    IsEdited = p.IsEdited
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var post in postsFromDb)
+            {
+                var cacheKey = $"{PostCacheKeyPrefix}{post.Id}";
+                await _cacheService.SetAsync(cacheKey, post, PostCacheTtl, cancellationToken);
+                results[post.Id] = post;
+            }
+
+            foreach (var id in missedIds)
+            {
+                if (!results.ContainsKey(id))
+                    _logger.LogWarning("Post {PostId} not found in database during hydration", id);
+            }
+        }
+
+        var allowedVisibilities = GetAllowedVisibilities(roleFlags);
+        return postIds
+            .Where(id => results.ContainsKey(id) && allowedVisibilities.Contains(results[id].PostVisibility))
+            .Select(id => results[id])
+            .ToList();
+    }
+
+    private static FeedResponseDto BuildResponse(List<PostDTO> hydratedPosts, int normalizedLimit)
+    {
+        var page = hydratedPosts.Take(normalizedLimit).ToList();
+        var hasMore = hydratedPosts.Count > normalizedLimit;
 
         return new FeedResponseDto
         {
-            PostIds = visiblePage,
-            NextCursor = hasVisibleMore && visiblePage.Count > 0 ? visiblePage[^1] : null
+            Posts = page,
+            NextCursor = hasMore && page.Count > 0 ? page[^1].Id : null
         };
     }
 
     private static IReadOnlySet<PostVisibility> GetAllowedVisibilities(RoleFlags roles)
     {
         var allowed = new HashSet<PostVisibility> { PostVisibility.Public };
-
         if (roles.IsDoctor)
         {
-            allowed.Add(PostVisibility.DoctorOnly);
-            allowed.Add(PostVisibility.PatientsOnly);
-            allowed.Add(PostVisibility.CaregiverOnly);
+            allowed.UnionWith(new[] { PostVisibility.DoctorOnly, PostVisibility.PatientsOnly, PostVisibility.CaregiverOnly });
             return allowed;
         }
-
-        if (roles.IsPatient)
-        {
-            allowed.Add(PostVisibility.PatientsOnly);
-        }
-
-        if (roles.IsCaregiver)
-        {
-            allowed.Add(PostVisibility.CaregiverOnly);
-        }
-
+        if (roles.IsPatient) allowed.Add(PostVisibility.PatientsOnly);
+        if (roles.IsCaregiver) allowed.Add(PostVisibility.CaregiverOnly);
         return allowed;
     }
 
@@ -198,20 +230,11 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
     }
 
-    private static async Task<long> GetRedisStartRankAsync(IDatabase redisDb, string feedKey, int? cursor)
+    private static async Task<long?> GetRedisStartRankAsync(IDatabase redisDb, string feedKey, int? cursor)
     {
-        if (!cursor.HasValue)
-        {
-            return 0;
-        }
-
+        if (!cursor.HasValue) return 0;
         var rank = await redisDb.SortedSetRankAsync(feedKey, cursor.Value.ToString(), Order.Descending);
-        if (!rank.HasValue)
-        {
-            return 0;
-        }
-
-        return rank.Value + 1;
+        return rank.HasValue ? rank.Value + 1 : null;
     }
 
     private static string BuildFeedKey(string userId) => $"{FeedKeyPrefix}{userId}";
