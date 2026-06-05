@@ -1,5 +1,6 @@
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Features.Feed;
+using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
@@ -56,6 +57,8 @@ public sealed class FeedVisibilityTests
         await using var dbContext = new BreastCancerDB(options);
         var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
 
+        var cacheServiceMock = new Mock<ICacheService>();
+
         var userId = "user-1";
         var authorId = "author-1";
 
@@ -66,12 +69,12 @@ public sealed class FeedVisibilityTests
 
         await dbContext.SaveChangesAsync();
 
-        var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
+        var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, cacheServiceMock.Object, loggerMock.Object);
 
         var query = new GetFeedQuery(userId, null, 10, roles);
         var result = await handler.Handle(query, CancellationToken.None);
 
-        var contains = result.PostIds.Contains(1);
+        var contains = result.Posts.Any(p => p.Id == 1);
         contains.Should().Be(expectedVisible);
     }
 
@@ -105,6 +108,8 @@ public sealed class FeedVisibilityTests
         await using var dbContext = new BreastCancerDB(options);
         var loggerMock = new Mock<ILogger<GetFeedQueryHandler>>();
 
+        var cacheServiceMock = new Mock<ICacheService>();
+
         var userId = "user-1";
         var authorId = "author-1";
 
@@ -112,12 +117,12 @@ public sealed class FeedVisibilityTests
 
         await dbContext.SaveChangesAsync();
 
-        var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, loggerMock.Object);
+        var handler = new GetFeedQueryHandler(multiplexerMock.Object, dbContext, cacheServiceMock.Object, loggerMock.Object);
 
         var query = new GetFeedQuery(userId, null, 10, roles);
         var result = await handler.Handle(query, CancellationToken.None);
 
-        var contains = result.PostIds.Contains(1);
+        var contains = result.Posts.Any(p => p.Id == 1);
         contains.Should().Be(expectedVisible);
     }
 }
