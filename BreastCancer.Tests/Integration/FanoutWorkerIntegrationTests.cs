@@ -1,5 +1,6 @@
 using BreastCancer.Community.Events;
 using BreastCancer.Community.Workers.Fanout;
+using BreastCancer.Community.Services.Interface; 
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
@@ -64,7 +65,6 @@ public sealed class FanoutWorkerIntegrationTests
 
         var batchMock = new Mock<IBatch>();
 
-        // Setup common overloads so queued batch tasks complete successfully.
         batchMock
             .Setup(b => b.SortedSetAddAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<double>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
@@ -108,12 +108,15 @@ public sealed class FanoutWorkerIntegrationTests
             Timestamp: timestamp));
         channel.Writer.Complete();
 
+        var communityNotifierMock = new Mock<ICommunityNotifier>();
+
         var worker = new FanoutWorker(
             channel,
             multiplexerMock.Object,
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<FanoutWorker>.Instance,
-            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>());
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>(),
+            communityNotifierMock.Object);   // <-- added
 
         // Act
         await worker.StartAsync(CancellationToken.None);
