@@ -21,7 +21,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore BreastCancer.sln
+        run: dotnet restore BreastCancer.sln --configuration Release
 
       - name: Run tests with full coverage report (no gate)
         run: >-
