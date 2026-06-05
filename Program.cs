@@ -1,9 +1,9 @@
-
 using BreastCancer.Context;
 using BreastCancer.Hubs;
 using BreastCancer.Mapping;
 using BreastCancer.Models;
 using BreastCancer.Community;
+using BreastCancer.Community.Hubs;
 using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
@@ -148,7 +148,8 @@ namespace BreastCancer
                         var accessToken = context.Request.Query["access_token"];
                         var path = context.HttpContext.Request.Path;
                         if (!string.IsNullOrEmpty(accessToken) &&
-                            path.StartsWithSegments(NotificationHub.HubRoute))
+                            (path.StartsWithSegments(NotificationHub.HubRoute) ||
+                             path.StartsWithSegments(CommunityHub.HubRoute)))
                         {
                             context.Token = accessToken;
                         }
@@ -220,6 +221,7 @@ namespace BreastCancer
 
             app.MapControllers();
             app.MapHub<NotificationHub>(NotificationHub.HubRoute);
+            app.MapCommunityModule();
 
             await app.RunAsync();
         }
