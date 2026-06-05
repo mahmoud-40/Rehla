@@ -9,11 +9,13 @@ using BreastCancer.Community.Security;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using BreastCancer.Community.Features.UpdatePost;
 using BreastCancer.Community.Features.DeletePost;
+using BreastCancer.Community.Features.Queries.GetFollowers;
+using BreastCancer.Community.Features.Queries.GetFollowing;
+using Rehla.Community.DTO.response;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -21,11 +23,11 @@ namespace BreastCancer.Community.Controllers
     [ApiController]
     public class CommunityController : ControllerBase
     {
-        private readonly IMediator mediator;
+        private readonly IMediator _mediator;
 
         public CommunityController(IMediator mediator)
         {
-            this.mediator = mediator;
+            this._mediator = mediator;
         }
 
         [HttpPost("posts")]
@@ -46,7 +48,7 @@ namespace BreastCancer.Community.Controllers
             var roles = User.GetRoles();
             try
             {
-                var post = await mediator.Send(new CreatePostCommand(createPostDTO, userId, roles));
+                var post = await _mediator.Send(new CreatePostCommand(createPostDTO, userId, roles));
                 return StatusCode(StatusCodes.Status201Created, post);
             }
             catch (ValidationException ex)
@@ -81,7 +83,7 @@ namespace BreastCancer.Community.Controllers
             }
             try
             {
-                await mediator.Send(new FollowUserCommand(followerId, userId));
+                await _mediator.Send(new FollowUserCommand(followerId, userId));
                 return Ok(new { message = "User followed successfully" });
             }
             catch (ValidationException ex)
@@ -119,7 +121,7 @@ namespace BreastCancer.Community.Controllers
             }
             try
             {
-                await mediator.Send(new UnfollowUserCommand(followerId, userId));
+                await _mediator.Send(new UnfollowUserCommand(followerId, userId));
                 return Ok(new { message = "User unfollowed successfully" });
             }
             catch (ValidationException ex)
@@ -162,7 +164,7 @@ namespace BreastCancer.Community.Controllers
                 effectiveLimit = 1;
             }
 
-            var feed = await mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit, roles), cancellationToken);
+            var feed = await _mediator.Send(new GetFeedQuery(userId, cursor, effectiveLimit, roles), cancellationToken);
             return Ok(feed);
         }
 
@@ -184,7 +186,7 @@ namespace BreastCancer.Community.Controllers
             var roles = User.GetRoles();
             try
             {
-                var post = await mediator.Send(new GetPostQuery(postId, userId, roles), cancellationToken);
+                var post = await _mediator.Send(new GetPostQuery(postId, userId, roles), cancellationToken);
                 return Ok(post);
             }
             catch (PostNotFoundException ex)
@@ -215,7 +217,7 @@ namespace BreastCancer.Community.Controllers
 
             try
             {
-                var post = await mediator.Send(new UpdatePostCommand(postId, updatePostDto, userId), cancellationToken);
+                var post = await _mediator.Send(new UpdatePostCommand(postId, updatePostDto, userId), cancellationToken);
                 return Ok(post);
             }
             catch (ValidationException ex)
@@ -255,7 +257,7 @@ namespace BreastCancer.Community.Controllers
             var roles = User.GetRoles();
             try
             {
-                await mediator.Send(new DeletePostCommand(postId, userId, roles), cancellationToken);
+                await _mediator.Send(new DeletePostCommand(postId, userId, roles), cancellationToken);
                 return NoContent();
             }
             catch (PostNotFoundException ex)
@@ -266,6 +268,38 @@ namespace BreastCancer.Community.Controllers
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
+        }
+        
+        [HttpGet("{userId}/followers")]
+        [ProducesResponseType(typeof(PaginatedFollowerDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PaginatedFollowerDto>> GetFollowers(
+            [FromRoute] string userId,
+            [FromQuery] string? cursor = null,
+            [FromQuery] int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("User ID cannot be empty");
+
+            var query = new GetFollowersQuery(userId, cursor, limit);
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+
+        [HttpGet("{userId}/followings")]
+        [ProducesResponseType(typeof(PaginatedFollowerDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<PaginatedFollowerDto>> GetFollowing([FromRoute] string userId,
+            [FromQuery] string? cursor = null,
+            [FromQuery] int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("User ID cannot be empty");
+            var query = new GetFollowingQuery(userId, cursor, limit);
+            var result = await _mediator.Send(query);
+            
+            return Ok(result);
         }
     }
 }
