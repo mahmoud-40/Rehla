@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using BreastCancer.Community.Options;
 using BreastCancer.Repository.Interface;
+using BreastCancer.Community.Services.Interface; 
 
 namespace BreastCancer.Community.Workers.Fanout;
 
@@ -18,13 +19,15 @@ public sealed class FanoutWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FanoutWorker> _logger;
     private readonly int _fanoutPushThreshold;
+    private readonly ICommunityNotifier _communityNotifier; 
 
     public FanoutWorker(
         Channel<FanoutJob> fanoutChannel,
         IConnectionMultiplexer connectionMultiplexer,
         IServiceScopeFactory scopeFactory,
         ILogger<FanoutWorker> logger,
-        IOptions<CommunityOptions> options)
+        IOptions<CommunityOptions> options,
+        ICommunityNotifier communityNotifier) 
     {
         _fanoutChannel = fanoutChannel ?? throw new ArgumentNullException(nameof(fanoutChannel));
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
@@ -32,6 +35,7 @@ public sealed class FanoutWorker : BackgroundService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         ArgumentNullException.ThrowIfNull(options);
         _fanoutPushThreshold = options.Value.FanoutPushThreshold;
+        _communityNotifier = communityNotifier ?? throw new ArgumentNullException(nameof(communityNotifier));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -119,21 +123,6 @@ public sealed class FanoutWorker : BackgroundService
         }
     }
 
-    private async Task HandleHighFollowerAsync(BreastCancerDB dbContext, FanoutJob job, int followerCount, CancellationToken cancellationToken)
-    {
-        var high = new HighFollowerPost
-        {
-            PostId = job.PostId,
-            AuthorId = job.AuthorId,
-            CreatedAt = job.Timestamp
-        };
-
-        dbContext.Add(high);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Author {AuthorId} exceeded fanout threshold ({Threshold}); recorded HighFollowerPost and skipped push.", job.AuthorId, _fanoutPushThreshold);
-    }
-
     private async Task HandleLowFollowerAsync(List<string> followerIds, FanoutJob job, CancellationToken cancellationToken)
     {
         var redisDb = _connectionMultiplexer.GetDatabase();
@@ -158,6 +147,11 @@ public sealed class FanoutWorker : BackgroundService
             job.PostId,
             job.AuthorId,
             followerIds.Count);
+
+        foreach (var followerId in followerIds)
+        {
+            _ = _communityNotifier.NotifyNewPostAsync(followerId, job.PostId.ToString());
+        }
     }
 
     private static string BuildFeedKey(string followerId) => $"{FeedKeyPrefix}{followerId}";

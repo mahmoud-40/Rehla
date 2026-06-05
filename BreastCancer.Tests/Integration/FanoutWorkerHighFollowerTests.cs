@@ -1,5 +1,6 @@
 using BreastCancer.Community.Events;
 using BreastCancer.Community.Workers.Fanout;
+using BreastCancer.Community.Services.Interface;  
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
@@ -29,8 +30,6 @@ public sealed class FanoutWorkerHighFollowerTests
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        // Configure community options (threshold default 500)
-        // Set the configured threshold via configuration string
         var dict = new Dictionary<string, string?>
         {
             { "Community:FanoutPushThreshold", "500" }
@@ -77,12 +76,15 @@ public sealed class FanoutWorkerHighFollowerTests
             Timestamp: timestamp));
         channel.Writer.Complete();
 
+        var communityNotifierMock = new Mock<ICommunityNotifier>();
+
         var worker = new FanoutWorker(
             channel,
             multiplexerMock.Object,
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<FanoutWorker>.Instance,
-            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>());
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>(),
+            communityNotifierMock.Object);   
 
         // Act
         await worker.StartAsync(CancellationToken.None);
@@ -109,8 +111,13 @@ public sealed class FanoutWorkerHighFollowerTests
 
         await worker.StopAsync(CancellationToken.None);
 
-        // Assert: ensure we didn't call Redis add for any follower
+        // Assert: ensure no Redis fanout
         redisDbMock.Verify(db => db.CreateBatch(It.IsAny<object?>()), Times.Never);
+
+        // Assert: SignalR should never be called for high-follower path
+        communityNotifierMock.Verify(
+            x => x.NotifyNewPostAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
 
         // Assert: HighFollowerPost recorded
         await using (var verifyScope = provider.CreateAsyncScope())

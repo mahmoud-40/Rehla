@@ -3,8 +3,11 @@ using BreastCancer.Community.Workers.Fanout;
 using BreastCancer.Community.Options;
 using BreastCancer.Community.Services.Implementation;
 using BreastCancer.Community.Services.Interface;
+using BreastCancer.Community.Hubs;    
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Builder;     
+using Microsoft.AspNetCore.Routing;   
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -56,7 +59,14 @@ public static class CommunityModule
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<IPostCreatedEventSink, NoOpPostCreatedEventSink>();
         services.AddScoped<IFollowCreatedEventSink, NoOpFollowCreatedEventSink>();
+        services.AddScoped<ICommunityNotifier, CommunityNotifier>();
 
         return services;
+    }
+
+    public static IEndpointRouteBuilder MapCommunityModule(this IEndpointRouteBuilder app)
+    {
+        app.MapHub<CommunityHub>(CommunityHub.HubRoute);
+        return app;
     }
 }
