@@ -69,7 +69,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
 
         var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
 
-        await AttachReactionCountsAsync(hydratedPosts);
+        await AttachReactionCountsAsync(hydratedPosts, cancellationToken);
 
         return BuildResponse(hydratedPosts, normalizedLimit);
     }
@@ -240,19 +240,17 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         return rank.HasValue ? rank.Value + 1 : null;
     }
 
-    private async Task AttachReactionCountsAsync(List<PostDTO> posts)
+    private async Task AttachReactionCountsAsync(List<PostDTO> posts, CancellationToken cancellationToken)
     {
         if (posts.Count == 0) return;
 
-        var redisDb = _connectionMultiplexer.GetDatabase();
-
         var tasks = posts.Select(async post =>
         {
-            var hashEntries = await redisDb.HashGetAllAsync($"rehla:community:post:{post.Id}:reactions");
+            var cacheKey = $"post:{post.Id}:reactions";
 
-            post.ReactionCounts = hashEntries.ToDictionary(
-                entry => entry.Name.ToString(),
-                entry => (long)entry.Value);
+            var hashEntries = await _cacheService.GetHashAllFieldsAsync(cacheKey, cancellationToken);
+
+            post.ReactionCounts = hashEntries ?? new Dictionary<string, long>();
         });
 
         await Task.WhenAll(tasks);
