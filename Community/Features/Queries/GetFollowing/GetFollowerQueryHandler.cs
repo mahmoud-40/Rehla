@@ -8,11 +8,11 @@ using Rehla.Community.DTO.response;
 
 namespace BreastCancer.Community.Features.Queries.GetFollowing;
 
-public class GetFollowerQueryHandler : IRequestHandler<GetFollowingQuery,PaginatedFollowerDto>
+public class GetFollowingQueryHandler : IRequestHandler<GetFollowingQuery,PaginatedFollowerDto>
 {
     private readonly BreastCancerDB _context;
 
-    public GetFollowerQueryHandler(BreastCancerDB Context)
+    public GetFollowingQueryHandler(BreastCancerDB Context)
     {
         this._context = Context;
     }
