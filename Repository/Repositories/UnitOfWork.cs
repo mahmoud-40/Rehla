@@ -20,6 +20,7 @@ namespace BreastCancer.Repository.Repositories
         private IFollowRepository _followRepository;
         private INotificationRepository _notificationRepository;
         private IHighFollowerPostRepository _highFollowerPostRepository;
+        private IReactionRepository _reactionRepository;
 
         public UnitOfWork(BreastCancerDB Context)
         {
@@ -140,6 +141,18 @@ namespace BreastCancer.Repository.Repositories
                     _highFollowerPostRepository = new HighFollowerPostRepository(context);
                 }
                 return _highFollowerPostRepository;
+            }
+        }
+
+        public IReactionRepository ReactionRepository
+        {
+            get
+            {
+                if (_reactionRepository == null)
+                {
+                    _reactionRepository = new ReactionRepository(context);
+                }
+                return _reactionRepository;
             }
         }
 

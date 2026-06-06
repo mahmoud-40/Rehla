@@ -30,6 +30,9 @@ public sealed class FanoutWorkerHighFollowerTests
         services.AddDbContext<BreastCancerDB>(options => options.UseInMemoryDatabase(dbName, dbRoot));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        var communityNotifierMock = new Mock<ICommunityNotifier>();
+        services.AddScoped<ICommunityNotifier>(_ => communityNotifierMock.Object);
+
         var dict = new Dictionary<string, string?>
         {
             { "Community:FanoutPushThreshold", "500" }
@@ -76,15 +79,12 @@ public sealed class FanoutWorkerHighFollowerTests
             Timestamp: timestamp));
         channel.Writer.Complete();
 
-        var communityNotifierMock = new Mock<ICommunityNotifier>();
-
         var worker = new FanoutWorker(
             channel,
             multiplexerMock.Object,
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<FanoutWorker>.Instance,
-            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>(),
-            communityNotifierMock.Object);   
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BreastCancer.Community.Options.CommunityOptions>>());   
 
         // Act
         await worker.StartAsync(CancellationToken.None);

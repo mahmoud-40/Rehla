@@ -68,6 +68,9 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
+
+        await AttachReactionCountsAsync(hydratedPosts, cancellationToken);
+
         return BuildResponse(hydratedPosts, normalizedLimit);
     }
 
@@ -235,6 +238,22 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         if (!cursor.HasValue) return 0;
         var rank = await redisDb.SortedSetRankAsync(feedKey, cursor.Value.ToString(), Order.Descending);
         return rank.HasValue ? rank.Value + 1 : null;
+    }
+
+    private async Task AttachReactionCountsAsync(List<PostDTO> posts, CancellationToken cancellationToken)
+    {
+        if (posts.Count == 0) return;
+
+        var tasks = posts.Select(async post =>
+        {
+            var cacheKey = $"post:{post.Id}:reactions";
+
+            var hashEntries = await _cacheService.GetHashAllFieldsAsync(cacheKey, cancellationToken);
+
+            post.ReactionCounts = hashEntries ?? new Dictionary<string, long>();
+        });
+
+        await Task.WhenAll(tasks);
     }
 
     private static string BuildFeedKey(string userId) => $"{FeedKeyPrefix}{userId}";
