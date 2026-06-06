@@ -1,21 +1,23 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
-using BreastCancer.Community.Features.Feed;
-using BreastCancer.Community.Features.GetPost;
+using BreastCancer.Community.Features.Commands.AddReaction;
 using BreastCancer.Community.Features.CreatePost;
+using BreastCancer.Community.Features.DeletePost;
+using BreastCancer.Community.Features.Feed;
 using BreastCancer.Community.Features.FollowUser;
+using BreastCancer.Community.Features.GetPost;
+using BreastCancer.Community.Features.Queries.GetFollowers;
+using BreastCancer.Community.Features.Queries.GetFollowing;
 using BreastCancer.Community.Features.UnfollowUser;
+using BreastCancer.Community.Features.UpdatePost;
 using BreastCancer.Community.Security;
+using BreastCancer.Enum;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
-using BreastCancer.Community.Features.UpdatePost;
-using BreastCancer.Community.Features.DeletePost;
-using BreastCancer.Community.Features.Queries.GetFollowers;
-using BreastCancer.Community.Features.Queries.GetFollowing;
 using Rehla.Community.DTO.response;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -269,7 +271,7 @@ namespace BreastCancer.Community.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
         }
-        
+
         [HttpGet("{userId}/followers")]
         [ProducesResponseType(typeof(PaginatedFollowerDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -300,6 +302,53 @@ namespace BreastCancer.Community.Controllers
             var result = await _mediator.Send(query);
             
             return Ok(result);
+        }
+
+        [HttpPost("posts/{postId:int}/reactions")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Add a reaction to a post")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Reaction added successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Conflict - User has already reacted to this post")] 
+        public async Task<IActionResult> AddReaction([FromRoute] int postId, [FromQuery] ReactionType type, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            var roles = User.GetRoles();
+
+            try
+            {
+                await _mediator.Send(new AddReactionCommand(postId, type, userId, roles), cancellationToken);
+                return Ok(new { message = "Reaction added successfully" });
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
+            }
+            catch (DuplicateReactionException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (PostAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
         }
     }
 }
