@@ -18,6 +18,8 @@ namespace BreastCancer.Repository.Interface
         INotificationRepository NotificationRepository { get; }
         IHighFollowerPostRepository HighFollowerPostRepository { get; }
 
+        IReactionRepository ReactionRepository { get; }
+
         Task<IDbContextTransaction> BeginTransactionAsync();
 
         Task<int> SaveAsync();

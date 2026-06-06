@@ -5,7 +5,7 @@ namespace BreastCancer.Repository.Interface
     public interface IGenericRepository<T> where T : class 
     {
         Task<IEnumerable<T>> GetAllAsync();
-        Task<T?> GetByIdAsync(string id);
+        Task<T?> GetByIdAsync(object id);
         Task AddAsync(T entity);
         void Add(T entity);
         void Update(T entity);
