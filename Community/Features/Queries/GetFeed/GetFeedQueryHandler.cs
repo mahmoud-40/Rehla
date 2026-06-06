@@ -68,6 +68,9 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         }
 
         var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
+
+        await AttachReactionCountsAsync(hydratedPosts);
+
         return BuildResponse(hydratedPosts, normalizedLimit);
     }
 
@@ -235,6 +238,24 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         if (!cursor.HasValue) return 0;
         var rank = await redisDb.SortedSetRankAsync(feedKey, cursor.Value.ToString(), Order.Descending);
         return rank.HasValue ? rank.Value + 1 : null;
+    }
+
+    private async Task AttachReactionCountsAsync(List<PostDTO> posts)
+    {
+        if (posts.Count == 0) return;
+
+        var redisDb = _connectionMultiplexer.GetDatabase();
+
+        var tasks = posts.Select(async post =>
+        {
+            var hashEntries = await redisDb.HashGetAllAsync($"rehla:community:post:{post.Id}:reactions");
+
+            post.ReactionCounts = hashEntries.ToDictionary(
+                entry => entry.Name.ToString(),
+                entry => (long)entry.Value);
+        });
+
+        await Task.WhenAll(tasks);
     }
 
     private static string BuildFeedKey(string userId) => $"{FeedKeyPrefix}{userId}";
