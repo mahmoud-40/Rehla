@@ -67,7 +67,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             feedIds = await GetFeedIdsFromSqlAsync(request, roleFlags, normalizedLimit, cancellationToken);
         }
 
-        var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
+        var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, request.UserId, cancellationToken);
 
         await AttachReactionCountsAsync(hydratedPosts, cancellationToken);
 
@@ -135,6 +135,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
     private async Task<List<PostDTO>> HydratePostsAsync(
         List<int> postIds,
         RoleFlags roleFlags,
+        string userId,
         CancellationToken cancellationToken)
     {
         if (postIds.Count == 0) return new List<PostDTO>();
@@ -182,10 +183,16 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
                 results[post.Id] = post;
             }
 
-            foreach (var id in missedIds)
+            var staleIds = missedIds.Where(id => !results.ContainsKey(id)).ToList();
+            if (staleIds.Any())
             {
-                if (!results.ContainsKey(id))
-                    _logger.LogWarning("Post {PostId} not found in database during hydration", id);
+                _logger.LogDebug("Removing {Count} stale post IDs from feed cache for user {UserId}",
+                    staleIds.Count, userId);
+
+                _ = Task.Run(() => _cacheService.RemoveFromSortedSetAsync(
+                    $"feed:{userId}",
+                    staleIds.Select(id => id.ToString()).ToArray(),
+                    CancellationToken.None), CancellationToken.None);
             }
         }
 
