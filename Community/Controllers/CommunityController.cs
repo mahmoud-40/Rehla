@@ -1,6 +1,7 @@
 ﻿using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features.Commands.AddReaction;
+using BreastCancer.Community.Features.Commands.RemoveReaction;
 using BreastCancer.Community.Features.CreatePost;
 using BreastCancer.Community.Features.DeletePost;
 using BreastCancer.Community.Features.Feed;
@@ -342,6 +343,45 @@ namespace BreastCancer.Community.Controllers
                 return Conflict(new { message = ex.Message });
             }
             catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (PostAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("posts/{postId:int}/reactions")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Remove a reaction from a post")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Reaction removed successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "User has not reacted to this post")]
+        public async Task<IActionResult> RemoveReaction([FromRoute] int postId, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+            try
+            {
+                await _mediator.Send(new RemoveReactionCommand(postId, userId), cancellationToken);
+                return Ok(new { message = "Reaction removed successfully" });
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
+            }
+            catch (ReactionNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
