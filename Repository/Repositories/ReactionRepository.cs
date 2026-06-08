@@ -9,5 +9,11 @@ namespace BreastCancer.Repository.Repositories
         public ReactionRepository(BreastCancerDB _Context) : base(_Context)
         {
         }
+
+        public Task<Reaction?> GetReactionByPostIdAndUserIdAsync(int postId, string userId)
+        {
+            var reaction = _Context.Reactions.FirstOrDefault(r => r.PostId == postId && r.UserId == userId);
+            return reaction != null ? Task.FromResult<Reaction?>(reaction) : Task.FromResult<Reaction?>(null);
+        }
     }
 }
