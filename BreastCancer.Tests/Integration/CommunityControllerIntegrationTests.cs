@@ -11,6 +11,7 @@ using BreastCancer.Community.Features.Feed;
 using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Community.Features.UpdatePost;
 using BreastCancer.Community.Features.Commands.AddReaction;
+using BreastCancer.Community.Features.Commands.RemoveReaction;
 using BreastCancer.Enum;
 using FluentAssertions;
 using MediatR;
@@ -289,6 +290,63 @@ public class CommunityControllerIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task RemoveReaction_ReturnsUnauthorized_WhenNotAuthenticated()
+    {
+        await using var app = await BuildAppAsync(new FakeMediator());
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, " ");
+
+        var response = await client.DeleteAsync("/api/community/posts/10/reactions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RemoveReaction_ReturnsOk_WhenSuccessful()
+    {
+        var fake = new FakeMediator();
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        var response = await client.DeleteAsync("/api/community/posts/10/reactions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.LastRemoveReactionCommand.Should().NotBeNull();
+        fake.LastRemoveReactionCommand!.PostId.Should().Be(10);
+        fake.LastRemoveReactionCommand.UserId.Should().Be("user-1");
+    }
+
+    [Fact]
+    public async Task RemoveReaction_ReturnsNotFound_WhenReactionDoesNotExist()
+    {
+        var fake = new FakeMediator
+        {
+            RemoveReactionException = new ReactionNotFoundException("User has not reacted to this post")
+        };
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        var response = await client.DeleteAsync("/api/community/posts/10/reactions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task RemoveReaction_ReturnsForbidden_WhenVisibilityBlocked()
+    {
+        var fake = new FakeMediator
+        {
+            RemoveReactionException = new PostAccessForbiddenException("Blocked")
+        };
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        var response = await client.DeleteAsync("/api/community/posts/10/reactions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private static HttpClient CreateAuthenticatedClient(WebApplication app, string userId, IReadOnlyCollection<string>? roles = null)
     {
         var client = app.GetTestClient();
@@ -331,7 +389,10 @@ public class CommunityControllerIntegrationTests
         public UpdatePostCommand? LastUpdatePostCommand { get; private set; }
         public DeletePostCommand? LastDeletePostCommand { get; private set; }
         public AddReactionCommand? LastAddReactionCommand { get; private set; }
+        public RemoveReactionCommand? LastRemoveReactionCommand { get; private set; } 
         public Exception? AddReactionException { get; set; }
+        public Exception? RemoveReactionException { get; set; } 
+
         public FeedResponseDto Response { get; set; } = new FeedResponseDto
         {
             Posts = new List<PostDTO>
@@ -419,6 +480,16 @@ public class CommunityControllerIntegrationTests
                 return Task.FromResult((TResponse)(object)MediatR.Unit.Value);
             }
 
+            if (request is RemoveReactionCommand removeReactionCommand)
+            {
+                LastRemoveReactionCommand = removeReactionCommand;
+                if (RemoveReactionException is not null)
+                {
+                    return Task.FromException<TResponse>(RemoveReactionException);
+                }
+                return Task.FromResult((TResponse)(object)MediatR.Unit.Value);
+            }
+
             return Task.FromResult(default(TResponse)!);
         }
 
@@ -469,6 +540,16 @@ public class CommunityControllerIntegrationTests
                 if (AddReactionException is not null)
                 {
                     return Task.FromException<object?>(AddReactionException);
+                }
+                return Task.FromResult<object?>(MediatR.Unit.Value);
+            }
+
+            if (request is RemoveReactionCommand removeReactionCommandObj)
+            {
+                LastRemoveReactionCommand = removeReactionCommandObj;
+                if (RemoveReactionException is not null)
+                {
+                    return Task.FromException<object?>(RemoveReactionException);
                 }
                 return Task.FromResult<object?>(MediatR.Unit.Value);
             }
