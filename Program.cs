@@ -71,8 +71,7 @@ namespace BreastCancer
 
             builder.Services.AddDbContext<BreastCancerDB>(options =>
             {
-                options.UseLazyLoadingProxies()
-                       .UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("BreastCancer"));
             }, ServiceLifetime.Scoped);
 
             builder.Services.Configure<JwtOptions>

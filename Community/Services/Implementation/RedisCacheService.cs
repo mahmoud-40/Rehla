@@ -225,7 +225,6 @@ public class RedisCacheService : ICacheService
         }
     }
 
-
     public async Task<Dictionary<string, long>> GetHashAllFieldsAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -257,6 +256,30 @@ public class RedisCacheService : ICacheService
         {
             _logger.LogError(ex, "Unexpected error retrieving hash fields for key: {Key}.", key);
             return new Dictionary<string, long>(); 
+        }
+    }
+
+    public async Task RemoveFromSortedSetAsync(string key, string[] members, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Cache key cannot be null or empty.", nameof(key));
+        if (members.Length == 0) return;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var db = _connectionMultiplexer.GetDatabase();
+            var redisValues = members.Select(m => (RedisValue)m).ToArray();
+            await db.SortedSetRemoveAsync(BuildKey(key), redisValues);
+            _logger.LogDebug("Removed {Count} members from sorted set: {Key}", members.Length, key);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis operation failed removing members from sorted set: {Key}. Stale IDs may remain.", key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error removing members from sorted set: {Key}.", key);
         }
     }
 

@@ -14,4 +14,5 @@ public interface ICacheService
 
     Task DecrementHashFieldAsync(string key, string field, long decrementBy = 1, CancellationToken cancellationToken = default);
 
+    Task RemoveFromSortedSetAsync(string key, string[] members, CancellationToken cancellationToken = default);
 }
