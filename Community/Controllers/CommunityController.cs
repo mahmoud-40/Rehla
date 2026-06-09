@@ -1,4 +1,5 @@
-﻿using BreastCancer.Community.DTO.request;
+﻿using System.Security.Claims;
+using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features.Feed;
 using BreastCancer.Community.Features.GetPost;
@@ -16,6 +17,8 @@ using BreastCancer.Community.Features.DeletePost;
 using BreastCancer.Community.Features.Queries.GetFollowers;
 using BreastCancer.Community.Features.Queries.GetFollowing;
 using Rehla.Community.DTO.response;
+using BreastCancer.Community.DTO.response;
+using BreastCancer.Community.Features.Queries.GetUserPosts;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -300,6 +303,37 @@ namespace BreastCancer.Community.Controllers
             var result = await _mediator.Send(query);
             
             return Ok(result);
+        }
+
+        [HttpGet("{userId}/posts")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserPostsResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<UserPostsResponseDto>> GetUserPosts(
+            [FromRoute] string userId,
+            [FromQuery] string? cursor = null,
+            [FromQuery] int limit =10
+        )
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest(new {error = "User Id cannot be empty"});
+            }
+
+            var cuurentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var query = new GetUserPostsQuery(userId, cursor, limit, cuurentUserId);
+
+            try
+            {
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
         }
     }
 }

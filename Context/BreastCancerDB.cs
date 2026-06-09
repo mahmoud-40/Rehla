@@ -10,7 +10,7 @@ namespace BreastCancer.Context
     {
         private static readonly JsonSerializerOptions PostMediaUrlsJsonOptions = new();
 
-        public BreastCancerDB(DbContextOptions options)
+        public BreastCancerDB(DbContextOptions<BreastCancerDB> options)
             : base(options)
         {
         }

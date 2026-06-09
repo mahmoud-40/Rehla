@@ -6,9 +6,18 @@ namespace BreastCancer.Community.DTO.response
     public class PostDTO
     {
         public int Id { get; set; }
-        public string AuthorId { get; set; }
         public string Content { get; set; }
         public PostType PostType { get; set; }
+        public List<string>? ImageUrl { get; set; } = new();
+        public string AuthorId { get; set; } = null!;
+        public string AuthorName { get; set; } = null!;
+        public string? AuthorAvatarUrl { get; set; }
+        public string AuthorRole { get; set; } = null!;
+        
+        public int ReactionsCount { get; set; }
+        public int CommentsCount { get; set; }
+        public bool IsLikedByCurrentUser { get; set; }
+        
         public PostVisibility PostVisibility { get; set; }
         [JsonPropertyName("mediaUrls")]
         public IReadOnlyCollection<string>? MediaUrls { get; set; }
