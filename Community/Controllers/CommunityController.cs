@@ -336,7 +336,8 @@ namespace BreastCancer.Community.Controllers
             catch (NotFoundException ex)
             {
                 return NotFound(new { error = ex.Message });
-=======
+            }
+        }
         [HttpPost("posts/{postId:int}/reactions")]
         [Authorize]
         [SwaggerOperation(Summary = "Add a reaction to a post")]
@@ -420,7 +421,6 @@ namespace BreastCancer.Community.Controllers
             catch (PostAccessForbiddenException ex)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
->>>>>>> 15c4f822cc1da3fa11da0696a6a808e31e6f7ad5
             }
         }
     }
