@@ -169,7 +169,7 @@ public sealed class GetUserPostsQueryHandlerTests
         var handler = new GetUserPostsQueryHandler(dbContext, postVisibilityService);
 
         var result = await handler.Handle(
-            new GetUserPostsQuery("user-1", null, 10, currentUserId: null),
+            new GetUserPostsQuery("user-1", null, 10, CurrentUserId: null),
             CancellationToken.None
         );
 
@@ -229,7 +229,7 @@ public sealed class GetUserPostsQueryHandlerTests
 
         // First page
         var firstPageResult = await handler.Handle(
-            new GetUserPostsQuery("user-1", null, limit: 2, "user-1"),
+            new GetUserPostsQuery("user-1", null, Limit: 2, CurrentUserId: "user-1"),
             CancellationToken.None
         );
 
@@ -239,7 +239,7 @@ public sealed class GetUserPostsQueryHandlerTests
 
         // Second page using cursor
         var secondPageResult = await handler.Handle(
-            new GetUserPostsQuery("user-1", firstPageResult.NextCursor, limit: 2, "user-1"),
+            new GetUserPostsQuery("user-1", firstPageResult.NextCursor, Limit: 2, CurrentUserId: "user-1"),
             CancellationToken.None
         );
 
@@ -280,7 +280,7 @@ public sealed class GetUserPostsQueryHandlerTests
 
         // Test with limit > 50
         var resultLargeLimit = await handler.Handle(
-            new GetUserPostsQuery("user-1", null, limit: 100, "user-1"),
+            new GetUserPostsQuery("user-1", null, Limit: 100, CurrentUserId: "user-1"),
             CancellationToken.None
         );
 
@@ -289,7 +289,7 @@ public sealed class GetUserPostsQueryHandlerTests
 
         // Test with limit < 1
         var resultSmallLimit = await handler.Handle(
-            new GetUserPostsQuery("user-1", null, limit: -5, "user-1"),
+            new GetUserPostsQuery("user-1", null, Limit: -5, CurrentUserId: "user-1"),
             CancellationToken.None
         );
 
@@ -421,7 +421,7 @@ public sealed class GetUserPostsQueryHandlerTests
             Email = "john@example.com",
             ImageUrl = "https://example.com/avatar.jpg"
         };
-        var patient = new Patient { Id = "patient-1", UserId = "user-1", User = user };
+        var patient = new Patient { UserId = "user-1", User = user };
         user.Patient = patient;
 
         dbContext.Users.Add(user);
@@ -442,7 +442,7 @@ public sealed class GetUserPostsQueryHandlerTests
         };
 
         // Add reactions and comments
-        var reaction = new Reaction { UserId = "user-2", ReactionType = ReactionType.Like, Post = post };
+        var reaction = new Reaction { UserId = "user-2", Type = ReactionType.Like, Post = post };
         var comment = new Comment { UserId = "user-3", Content = "Great post!", Post = post, IsDeleted = false };
 
         dbContext.Posts.Add(post);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using BreastCancer.Community.Controllers;
+using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features.Queries.GetUserPosts;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Enum;
