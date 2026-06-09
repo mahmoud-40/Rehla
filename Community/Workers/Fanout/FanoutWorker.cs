@@ -107,7 +107,6 @@ public sealed class FanoutWorker : BackgroundService
             }
             else
             {
-                var communityNotifier = scope.ServiceProvider.GetRequiredService<ICommunityNotifier>();
                 await HandleLowFollowerAsync(followerIds, job, communityNotifier, cancellationToken);
             }
         }
