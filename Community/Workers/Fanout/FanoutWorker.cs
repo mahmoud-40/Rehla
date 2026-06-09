@@ -6,7 +6,10 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using BreastCancer.Community.Options;
 using BreastCancer.Repository.Interface;
-using BreastCancer.Community.Services.Interface; 
+using BreastCancer.Community.Services.Interface;
+using Microsoft.Extensions.DependencyInjection; 
+using Microsoft.Extensions.Hosting; 
+using Microsoft.Extensions.Logging;
 
 namespace BreastCancer.Community.Workers.Fanout;
 
@@ -25,7 +28,7 @@ public sealed class FanoutWorker : BackgroundService
         IConnectionMultiplexer connectionMultiplexer,
         IServiceScopeFactory scopeFactory,
         ILogger<FanoutWorker> logger,
-        IOptions<CommunityOptions> options) 
+        IOptions<CommunityOptions> options)
     {
         _fanoutChannel = fanoutChannel ?? throw new ArgumentNullException(nameof(fanoutChannel));
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
@@ -71,6 +74,7 @@ public sealed class FanoutWorker : BackgroundService
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<BreastCancerDB>();
+            var communityNotifier = scope.ServiceProvider.GetRequiredService<ICommunityNotifier>();
 
             var followerIds = await dbContext.Follows
                 .AsNoTracking()

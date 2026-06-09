@@ -24,5 +24,7 @@ namespace BreastCancer.Community.DTO.response
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public bool IsEdited { get; set; }
+
+        public Dictionary<string, long> ReactionCounts { get; set; } = new();
     }
 }

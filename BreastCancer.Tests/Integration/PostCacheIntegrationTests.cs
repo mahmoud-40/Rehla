@@ -125,6 +125,7 @@ public sealed class PostCacheIntegrationTests : IAsyncLifetime
     {
         private readonly BreastCancerDB _dbContext;
         private readonly IDbContextTransaction _transaction;
+        public IReactionRepository ReactionRepository => throw new NotImplementedException();
         public FakeUnitOfWork(BreastCancerDB dbContext)
         {
             _dbContext = dbContext;
@@ -169,6 +170,7 @@ public sealed class PostCacheIntegrationTests : IAsyncLifetime
     private sealed class FakePostRepository : IPostRepository
     {
         private readonly BreastCancerDB _dbContext;
+        
         public FakePostRepository(BreastCancerDB dbContext)
         {
             _dbContext = dbContext;
@@ -180,6 +182,10 @@ public sealed class PostCacheIntegrationTests : IAsyncLifetime
             await _dbContext.SaveChangesAsync();
         }
 
+        public Task<Post?> GetByIdAsync(object id)
+        {
+            throw new NotImplementedException();
+        }
         public void Add(Post entity) => _dbContext.Posts.Add(entity);
         public void Update(Post entity) => _dbContext.Posts.Update(entity);
         public void Delete(Post entity) => _dbContext.Posts.Remove(entity);

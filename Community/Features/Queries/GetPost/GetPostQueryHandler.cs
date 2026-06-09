@@ -1,9 +1,10 @@
 using AutoMapper;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Exceptions;
+using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
-using Microsoft.EntityFrameworkCore;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace BreastCancer.Community.Features.GetPost;
 
@@ -11,11 +12,13 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
 {
     private readonly BreastCancerDB _dbContext;
     private readonly IMapper _mapper;
+    private readonly ICacheService _cacheService;
 
-    public GetPostQueryHandler(BreastCancerDB dbContext, IMapper mapper)
+    public GetPostQueryHandler(BreastCancerDB dbContext, IMapper mapper, ICacheService cacheService)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
     public async Task<PostDTO> Handle(GetPostQuery request, CancellationToken cancellationToken)
@@ -34,6 +37,11 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
             throw new PostAccessForbiddenException("You are not allowed to view this post.");
         }
 
-        return _mapper.Map<PostDTO>(post);
+        var dto = _mapper.Map<PostDTO>(post);
+
+        var reactionCounts = await _cacheService.GetHashAllFieldsAsync($"post:{post.Id}:reactions", cancellationToken);
+        dto.ReactionCounts = reactionCounts;
+
+        return dto;
     }
 }

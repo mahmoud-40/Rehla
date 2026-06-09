@@ -160,5 +160,128 @@ public class RedisCacheService : ICacheService
         }
     }
 
+    public async Task IncrementHashFieldAsync(string key, string field, long incrementBy = 1, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Cache key cannot be null or empty.", nameof(key));
+        if (string.IsNullOrWhiteSpace(field))
+            throw new ArgumentException("Hash field cannot be null or empty.", nameof(field));
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var db = _connectionMultiplexer.GetDatabase();
+            await db.HashIncrementAsync(BuildKey(key), field, incrementBy);
+            _logger.LogDebug("Incremented hash field: {Field} by {Increment} in cache key: {Key}", field, incrementBy, key);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Cache hash increment operation cancelled for key: {Key}, field: {Field}", key, field);
+            throw;
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis operation failed when incrementing hash field: {Field} in key: {Key}. Cache may be out of sync.", field, key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error incrementing hash field: {Field} in cache key: {Key}. Cache may be out of sync.", field, key);
+        }
+    }
+
+    public async Task DecrementHashFieldAsync(string key, string field, long decrementBy = 1, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Cache key cannot be null or empty.", nameof(key));
+        if (string.IsNullOrWhiteSpace(field))
+            throw new ArgumentException("Hash field cannot be null or empty.", nameof(field));
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var db = _connectionMultiplexer.GetDatabase();
+            var fullKey = BuildKey(key);
+
+            long newValue = await db.HashDecrementAsync(fullKey, field, decrementBy);
+
+            if (newValue < 0)
+            {
+                await db.HashSetAsync(fullKey, field, 0);
+                _logger.LogWarning("Reaction count for key {Key} field {Field} dropped below zero. Reset to 0.", key, field);
+            }
+
+            _logger.LogDebug("Decremented hash field: {Field} by {Decrement} in cache key: {Key}", field, decrementBy, key);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Cache hash decrement operation cancelled for key: {Key}, field: {Field}", key, field);
+            throw;
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis operation failed when decrementing hash field: {Field} in key: {Key}. Cache may be out of sync.", field, key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error decrementing hash field: {Field} in cache key: {Key}. Cache may be out of sync.", field, key);
+        }
+    }
+
+    public async Task<Dictionary<string, long>> GetHashAllFieldsAsync(string key, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Cache key cannot be null or empty.", nameof(key));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var db = _connectionMultiplexer.GetDatabase();
+
+            var hashEntries = await db.HashGetAllAsync(BuildKey(key));
+
+            return hashEntries.ToDictionary(
+                entry => entry.Name.ToString(),
+                entry => (long)entry.Value);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Cache hash get all operation cancelled for key: {Key}", key);
+            throw;
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis operation failed when reading hash fields for key: {Key}.", key);
+            return new Dictionary<string, long>(); 
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error retrieving hash fields for key: {Key}.", key);
+            return new Dictionary<string, long>(); 
+        }
+    }
+
+    public async Task RemoveFromSortedSetAsync(string key, string[] members, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Cache key cannot be null or empty.", nameof(key));
+        if (members.Length == 0) return;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var db = _connectionMultiplexer.GetDatabase();
+            var redisValues = members.Select(m => (RedisValue)m).ToArray();
+            await db.SortedSetRemoveAsync(BuildKey(key), redisValues);
+            _logger.LogDebug("Removed {Count} members from sorted set: {Key}", members.Length, key);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis operation failed removing members from sorted set: {Key}. Stale IDs may remain.", key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error removing members from sorted set: {Key}.", key);
+        }
+    }
+
     private static string BuildKey(string key) => $"{KeyPrefix}{key}";
 }

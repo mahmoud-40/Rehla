@@ -292,6 +292,21 @@ namespace BreastCancer.Context
 
             builder.Entity<HighFollowerPost>()
                 .HasKey(h => h.Id);
+
+            builder.Entity<Reaction>()
+                .ToTable("Reactions", "community");
+
+            builder.Entity<Reaction>()
+                .HasIndex(reaction => new { reaction.PostId, reaction.UserId })
+                .IsUnique();
+
+            builder.Entity<Reaction>()
+                .HasQueryFilter(reaction => !reaction.Post.IsDeleted);
+
+            builder.Entity<Reaction>()
+                .Property(reaction => reaction.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
         }
 
     }

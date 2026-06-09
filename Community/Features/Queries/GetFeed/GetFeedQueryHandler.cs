@@ -67,7 +67,10 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             feedIds = await GetFeedIdsFromSqlAsync(request, roleFlags, normalizedLimit, cancellationToken);
         }
 
-        var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, cancellationToken);
+        var hydratedPosts = await HydratePostsAsync(feedIds, roleFlags, request.UserId, cancellationToken);
+
+        await AttachReactionCountsAsync(hydratedPosts, cancellationToken);
+
         return BuildResponse(hydratedPosts, normalizedLimit);
     }
 
@@ -132,6 +135,7 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
     private async Task<List<PostDTO>> HydratePostsAsync(
         List<int> postIds,
         RoleFlags roleFlags,
+        string userId,
         CancellationToken cancellationToken)
     {
         if (postIds.Count == 0) return new List<PostDTO>();
@@ -179,10 +183,16 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
                 results[post.Id] = post;
             }
 
-            foreach (var id in missedIds)
+            var staleIds = missedIds.Where(id => !results.ContainsKey(id)).ToList();
+            if (staleIds.Any())
             {
-                if (!results.ContainsKey(id))
-                    _logger.LogWarning("Post {PostId} not found in database during hydration", id);
+                _logger.LogDebug("Removing {Count} stale post IDs from feed cache for user {UserId}",
+                    staleIds.Count, userId);
+
+                _ = Task.Run(() => _cacheService.RemoveFromSortedSetAsync(
+                    $"feed:{userId}",
+                    staleIds.Select(id => id.ToString()).ToArray(),
+                    CancellationToken.None), CancellationToken.None);
             }
         }
 
@@ -235,6 +245,22 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         if (!cursor.HasValue) return 0;
         var rank = await redisDb.SortedSetRankAsync(feedKey, cursor.Value.ToString(), Order.Descending);
         return rank.HasValue ? rank.Value + 1 : null;
+    }
+
+    private async Task AttachReactionCountsAsync(List<PostDTO> posts, CancellationToken cancellationToken)
+    {
+        if (posts.Count == 0) return;
+
+        var tasks = posts.Select(async post =>
+        {
+            var cacheKey = $"post:{post.Id}:reactions";
+
+            var hashEntries = await _cacheService.GetHashAllFieldsAsync(cacheKey, cancellationToken);
+
+            post.ReactionCounts = hashEntries ?? new Dictionary<string, long>();
+        });
+
+        await Task.WhenAll(tasks);
     }
 
     private static string BuildFeedKey(string userId) => $"{FeedKeyPrefix}{userId}";

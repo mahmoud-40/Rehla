@@ -4,6 +4,7 @@ using BreastCancer.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BreastCancer.Migrations
 {
     [DbContext(typeof(BreastCancerDB))]
-    partial class BreastCancerDBModelSnapshot : ModelSnapshot
+    [Migration("20260606191741_PreventDuplicateReactions")]
+    partial class PreventDuplicateReactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,28 +58,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
-                            ConcurrencyStamp = "f3260f47-0bdd-4c46-b69d-71d7a9c8bbf4",
+                            ConcurrencyStamp = "fc628ff3-201e-448a-8cfb-c24740a90b38",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
-                            ConcurrencyStamp = "0b1053f3-ae92-46af-a338-2bfb2b19322b",
+                            ConcurrencyStamp = "302d1b74-b11e-4fcb-aa26-3fd3454a90db",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
-                            ConcurrencyStamp = "0c0c9e5c-fa42-4048-ab44-5ecb267bb5b7",
+                            ConcurrencyStamp = "9e7cc21a-9c39-4b67-a895-af68974e2f0e",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
-                            ConcurrencyStamp = "42ed7c5c-4c9e-4168-bb83-9ea53db20203",
+                            ConcurrencyStamp = "afa4f131-7ee3-46ce-b34a-5b0b13ab879b",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
@@ -239,9 +242,6 @@ namespace BreastCancer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<int>("PostId")
                         .HasColumnType("int");

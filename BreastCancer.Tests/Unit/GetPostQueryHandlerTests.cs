@@ -2,6 +2,7 @@ using AutoMapper;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features.GetPost;
+using BreastCancer.Community.Services.Interface; 
 using BreastCancer.Context;
 using BreastCancer.Enum;
 using BreastCancer.Models;
@@ -19,7 +20,9 @@ public sealed class GetPostQueryHandlerTests
     {
         await using var dbContext = CreateDbContext();
         var mapper = CreateMapper();
-        var handler = new GetPostQueryHandler(dbContext, mapper);
+        var cacheServiceMock = new Mock<ICacheService>(); 
+
+        var handler = new GetPostQueryHandler(dbContext, mapper, cacheServiceMock.Object); 
 
         var act = async () => await handler.Handle(new GetPostQuery(1, "user-1", new[] { "Patient" }), CancellationToken.None);
 
@@ -41,7 +44,9 @@ public sealed class GetPostQueryHandlerTests
         await dbContext.SaveChangesAsync();
 
         var mapper = CreateMapper();
-        var handler = new GetPostQueryHandler(dbContext, mapper);
+        var cacheServiceMock = new Mock<ICacheService>(); 
+        
+        var handler = new GetPostQueryHandler(dbContext, mapper, cacheServiceMock.Object); 
 
         var act = async () => await handler.Handle(new GetPostQuery(1, "user-1", new[] { "Patient" }), CancellationToken.None);
 
@@ -63,7 +68,12 @@ public sealed class GetPostQueryHandlerTests
         await dbContext.SaveChangesAsync();
 
         var mapper = CreateMapper();
-        var handler = new GetPostQueryHandler(dbContext, mapper);
+        var cacheServiceMock = new Mock<ICacheService>(); 
+        
+        cacheServiceMock.Setup(c => c.GetHashAllFieldsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, long>());
+
+        var handler = new GetPostQueryHandler(dbContext, mapper, cacheServiceMock.Object);
 
         var result = await handler.Handle(new GetPostQuery(1, "user-1", new[] { "Patient" }), CancellationToken.None);
 
