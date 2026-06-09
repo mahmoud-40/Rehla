@@ -20,6 +20,8 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using BreastCancer.Community.Services.Implementation;
+using BreastCancer.Community.Services.Interface;
 
 
 namespace BreastCancer
@@ -33,7 +35,6 @@ namespace BreastCancer
 
             // Add services to the container.
 
-            builder.Services.AddSignalR();
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -43,6 +44,7 @@ namespace BreastCancer
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSignalR();
 
             #region Identity 
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -93,6 +95,7 @@ namespace BreastCancer
             builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
+            builder.Services.AddScoped<IPostVisibilityService, PostVisibilityService>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();
