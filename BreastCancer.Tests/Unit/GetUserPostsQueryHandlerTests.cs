@@ -501,7 +501,7 @@ public sealed class GetUserPostsQueryHandlerTests
         var reaction = new Reaction
         {
             UserId = "viewer-1",
-            ReactionType = ReactionType.Like,
+            Type = ReactionType.Like,
             Post = post
         };
 

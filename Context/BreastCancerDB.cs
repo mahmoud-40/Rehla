@@ -40,6 +40,8 @@ namespace BreastCancer.Context
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            builder.Entity<Follow>().HasKey(e => new { e.FollowerId, e.FollowingId });
+            builder.Entity<Follow>().HasIndex(e => new { e.FollowerId, e.CreatedAt });
             builder.Entity<Follow>().HasIndex(e => new { e.FollowingId, e.CreatedAt });
             builder.Entity<ApplicationUser>()
                 .HasOne(u => u.Caregiver)

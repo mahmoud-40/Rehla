@@ -20,10 +20,10 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
     }
     public async Task<UserPostsResponseDto> Handle(GetUserPostsQuery request, CancellationToken cancellationToken)
     {
-        var user = await _context.Users
+        var userExists = await _context.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        if (user == null)
+            .AnyAsync(u => u.Id == request.UserId, cancellationToken);
+        if (!userExists)
         {
             throw new NotFoundException($"User with ID '{request.UserId}' was not found");
         }
@@ -37,7 +37,7 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
 
         bool isViewingOwnPosts = request.CurrentUserId == request.UserId;
 
-        if (!isViewingOwnPosts && !string.IsNullOrEmpty(request.CurrentUserId))
+        if (!isViewingOwnPosts)
         {
             postsQuery = await _postVisibilityService
                 .ApplyVisibilityFilterAsync(postsQuery, request.CurrentUserId, cancellationToken);
@@ -54,7 +54,7 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
             }
         }
 
-        var postsData = await postsQuery.Take(limit + 1)
+        var postsTask =  postsQuery.Take(limit + 1)
             .Select(p => new
             {
                 p.Id,
@@ -73,14 +73,19 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
                 IsLikedByCurrentUser = !string.IsNullOrEmpty(request.CurrentUserId) && p.Reactions.Any(r => r.UserId == request.CurrentUserId),
                 IsEdited = p.UpdatedAt != null && p.UpdatedAt > p.CreatedAt
             }).ToListAsync(cancellationToken);
-
+        var totalTask =  postsQuery.CountAsync(cancellationToken);
+        await Task.WhenAll(postsTask,totalTask);
+        
+        var postsData = postsTask.Result;
+        var totalCount = totalTask.Result;
+        
         string? nextCursor = null;
         bool hasMorePosts = postsData.Count > limit;
 
         if (hasMorePosts)
         {
-            nextCursor = postsData.Last().CreatedAt.ToString("o");
-            postsData.RemoveAt(postsData.Count -1);
+            nextCursor = postsData[limit].CreatedAt.ToString("o");
+            postsData.RemoveAt(limit);
         }
 
         var posts = postsData.Select(p => new PostDTO
@@ -102,7 +107,6 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
             IsEdited = p.IsEdited
         }).ToList();
 
-        var totalCount = await postsQuery.CountAsync(cancellationToken);
         return new UserPostsResponseDto
         {
             Posts = posts,

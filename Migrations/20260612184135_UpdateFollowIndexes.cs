@@ -5,105 +5,70 @@
 namespace BreastCancer.Migrations
 {
     /// <inheritdoc />
-    public partial class EditThePostsAndCommentsTable : Migration
+    public partial class UpdateFollowIndexes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Follows_FollowingId",
-                schema: "community",
-                table: "Follows");
-
-            migrationBuilder.AddColumn<bool>(
-                name: "IsDeleted",
-                schema: "community",
-                table: "Comments",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
-
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "1",
                 column: "ConcurrencyStamp",
-                value: "f3260f47-0bdd-4c46-b69d-71d7a9c8bbf4");
+                value: "3c0080ba-54e3-41b1-9867-5726ee8a4912");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "2",
                 column: "ConcurrencyStamp",
-                value: "0b1053f3-ae92-46af-a338-2bfb2b19322b");
+                value: "ab561c69-fa2c-4ca7-8f65-6ba91e25d272");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "3",
                 column: "ConcurrencyStamp",
-                value: "0c0c9e5c-fa42-4048-ab44-5ecb267bb5b7");
+                value: "ec35016c-04ea-4b0b-9499-6eb7bb8a7b5b");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "4",
                 column: "ConcurrencyStamp",
-                value: "42ed7c5c-4c9e-4168-bb83-9ea53db20203");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Follows_FollowingId_CreatedAt",
-                schema: "community",
-                table: "Follows",
-                columns: new[] { "FollowingId", "CreatedAt" });
+                value: "539cb863-47ba-4a21-9d80-0db84ae6f013");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Follows_FollowingId_CreatedAt",
-                schema: "community",
-                table: "Follows");
-
-            migrationBuilder.DropColumn(
-                name: "IsDeleted",
-                schema: "community",
-                table: "Comments");
-
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "1",
                 column: "ConcurrencyStamp",
-                value: "38b77973-9234-4384-b1c0-aea7e9ae6a77");
+                value: "64ceeb38-35f1-4eb4-8948-d7464967fa3d");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "2",
                 column: "ConcurrencyStamp",
-                value: "aa42989d-c18a-4f8e-a90d-a5cf256eef31");
+                value: "3b8da00d-27cc-46d6-962c-9771d27060ea");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "3",
                 column: "ConcurrencyStamp",
-                value: "523e514f-6135-4425-82eb-f48049a36b03");
+                value: "9db63379-04c2-48b8-8346-cb4e8e4c7884");
 
             migrationBuilder.UpdateData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
                 keyValue: "4",
                 column: "ConcurrencyStamp",
-                value: "e3fb2cc0-a6de-41f8-82f3-9c72220b5b9e");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Follows_FollowingId",
-                schema: "community",
-                table: "Follows",
-                column: "FollowingId");
+                value: "3ac71b23-d0ed-486d-9152-330118ed2dc6");
         }
     }
 }

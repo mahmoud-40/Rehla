@@ -23,11 +23,12 @@ public class PostVisibilityService :IPostVisibilityService
             return query.Where(post => post.Visibility == PostVisibility.Public);
 
         var userContext = await GetUserContextAsync(currentUserId, cancellationToken);
+        var followingIds = userContext.FollowingIds;
 
         return query.Where(
             post => post.AuthorId == currentUserId ||
             IsVisibleByRole(post.Visibility,userContext.Role) || 
-            (post.Visibility == PostVisibility.FollowersOnly && userContext.FollowingIds.Contains(post.AuthorId))
+            (post.Visibility == PostVisibility.FollowersOnly && followingIds.Contains(post.AuthorId))
         );
 
     }
@@ -46,24 +47,17 @@ public class PostVisibilityService :IPostVisibilityService
 
         var userContext = await GetUserContextAsync(currentUserId, cancellationToken);
 
-        if (
-            IsVisibleByRole(post.Visibility, userContext.Role) ||
-            (PostVisibility.FollowersOnly == post.Visibility && userContext.FollowingIds.Contains(post.AuthorId))
-        )
-        {
-            return true;
-        }
-        
-        return false;
+        return IsVisibleByUserContext(post.Visibility, post.AuthorId , userContext);
+
     }
     
     
-    public async Task<UserContext> GetUserContextAsync(
+    private async Task<UserContext> GetUserContextAsync(
         string userId,
         CancellationToken cancellationToken = default
     )
     {
-        var user = await _context.Users
+        var userTask = _context.Users
             .AsNoTracking()
             .Select(u => new{
                 u.Id,
@@ -72,20 +66,27 @@ public class PostVisibilityService :IPostVisibilityService
                 IsCaregiver = u.Caregiver != null
             }).FirstOrDefaultAsync(u => u.Id == userId,cancellationToken);
 
+        
+        var followingIdsTask =  _context.Follows.AsNoTracking()
+            .Where(u => u.FollowerId == userId)
+            .Select(f => f.FollowingId)
+            .ToListAsync(cancellationToken);
+
+        await Task.WhenAll(userTask ,followingIdsTask);
+        var user =  userTask.Result;
+        var followingIds =  followingIdsTask.Result;
+        
         var role = user?.IsPatient == true ?
             "Patient" : user?.IsDoctor == true ?
             "Doctor" : user?.IsCaregiver == true ?
             "Caregiver" : "Unknown" ;
-
-        var followingIds = await _context.Follows.AsNoTracking()
-            .Where(u => u.FollowerId == userId)
-            .Select(f => f.FollowingId)
-            .AsAsyncEnumerable()
-            .ToHashSetAsync();
-
         return new UserContext(role,followingIds);
     }
 
+    private static bool IsVisibleByUserContext(PostVisibility visibility, string authorId , UserContext userContext)
+    {
+        return IsVisibleByRole(visibility, userContext.Role) || (visibility == PostVisibility.FollowersOnly && userContext.FollowingIds.Contains(authorId));
+    }
     private static bool IsVisibleByRole(PostVisibility visibility, string role)
     {
         return visibility switch
@@ -97,6 +98,6 @@ public class PostVisibilityService :IPostVisibilityService
             _ => false
         };
     }
-    public record UserContext(string Role, HashSet<string> FollowingIds);
+    private record UserContext(string Role, List<string> FollowingIds);
 
 }
