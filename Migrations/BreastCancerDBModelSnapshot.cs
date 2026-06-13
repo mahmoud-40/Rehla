@@ -18,9 +18,6 @@ namespace BreastCancer.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.0")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -55,28 +52,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
-                            ConcurrencyStamp = "fc628ff3-201e-448a-8cfb-c24740a90b38",
+                            ConcurrencyStamp = "0bf4a35a-355a-4b50-bbf1-06e352b90e24",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
-                            ConcurrencyStamp = "302d1b74-b11e-4fcb-aa26-3fd3454a90db",
+                            ConcurrencyStamp = "4ae2e943-87f9-4278-ba09-62ba2b01282f",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
-                            ConcurrencyStamp = "9e7cc21a-9c39-4b67-a895-af68974e2f0e",
+                            ConcurrencyStamp = "3a7a65fa-36ac-464e-82a1-4fcff6d5166c",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
-                            ConcurrencyStamp = "afa4f131-7ee3-46ce-b34a-5b0b13ab879b",
+                            ConcurrencyStamp = "68a0c479-97c7-4dfe-98a1-fc4a699c1d00",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
@@ -240,6 +237,9 @@ namespace BreastCancer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("PostId")
                         .HasColumnType("int");
 
@@ -296,6 +296,8 @@ namespace BreastCancer.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("FollowerId", "FollowingId");
+
+                    b.HasIndex("FollowerId", "CreatedAt");
 
                     b.HasIndex("FollowingId", "CreatedAt");
 

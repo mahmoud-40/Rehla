@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BreastCancer.Migrations
 {
     [DbContext(typeof(BreastCancerDB))]
-    [Migration("20260601181431_AddIsEditedToPosts")]
-    partial class AddIsEditedToPosts
+    [Migration("20260613224357_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,9 +21,6 @@ namespace BreastCancer.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.0")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -58,28 +55,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
-                            ConcurrencyStamp = "38b77973-9234-4384-b1c0-aea7e9ae6a77",
+                            ConcurrencyStamp = "0bf4a35a-355a-4b50-bbf1-06e352b90e24",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
-                            ConcurrencyStamp = "aa42989d-c18a-4f8e-a90d-a5cf256eef31",
+                            ConcurrencyStamp = "4ae2e943-87f9-4278-ba09-62ba2b01282f",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
-                            ConcurrencyStamp = "523e514f-6135-4425-82eb-f48049a36b03",
+                            ConcurrencyStamp = "3a7a65fa-36ac-464e-82a1-4fcff6d5166c",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
-                            ConcurrencyStamp = "e3fb2cc0-a6de-41f8-82f3-9c72220b5b9e",
+                            ConcurrencyStamp = "68a0c479-97c7-4dfe-98a1-fc4a699c1d00",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
@@ -243,6 +240,9 @@ namespace BreastCancer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("PostId")
                         .HasColumnType("int");
 
@@ -300,7 +300,9 @@ namespace BreastCancer.Migrations
 
                     b.HasKey("FollowerId", "FollowingId");
 
-                    b.HasIndex("FollowingId");
+                    b.HasIndex("FollowerId", "CreatedAt");
+
+                    b.HasIndex("FollowingId", "CreatedAt");
 
                     b.ToTable("Follows", "community");
                 });
@@ -706,9 +708,10 @@ namespace BreastCancer.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PostId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "UserId")
+                        .IsUnique();
 
                     b.ToTable("Reactions", "community");
                 });

@@ -1,4 +1,5 @@
-﻿using BreastCancer.Community.DTO.request;
+﻿using System.Security.Claims;
+using BreastCancer.Community.DTO.request;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Features.Commands.AddReaction;
 using BreastCancer.Community.Features.Commands.RemoveReaction;
@@ -18,6 +19,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rehla.Community.DTO.response;
+using BreastCancer.Community.DTO.response;
+using BreastCancer.Community.Features.Queries.GetUserPosts;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace BreastCancer.Community.Controllers
@@ -305,6 +308,43 @@ namespace BreastCancer.Community.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{userId}/posts")]
+        [Authorize]
+        [ProducesResponseType(typeof(UserPostsResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<UserPostsResponseDto>> GetUserPosts(
+            [FromRoute] string userId,
+            [FromQuery] string? cursor = null,
+            [FromQuery] int limit =10
+        )
+        {
+             if (string.IsNullOrEmpty(userId))
+                return BadRequest(new { error = "User Id cannot be empty" });
+
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var query = new GetUserPostsQuery(userId, cursor, limit, currentUserId);
+
+            try
+            {
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message,
+                    trace = ex.StackTrace
+                });
+            }
+        }
         [HttpPost("posts/{postId:int}/reactions")]
         [Authorize]
         [SwaggerOperation(Summary = "Add a reaction to a post")]
@@ -389,6 +429,13 @@ namespace BreastCancer.Community.Controllers
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
+        }
+        [HttpGet("debug-claims")]
+        [Authorize]
+        public IActionResult DebugClaims()
+        {
+            var claims = User.Claims.Select(c => new { c.Type, c.Value });
+            return Ok(claims);
         }
     }
 }
