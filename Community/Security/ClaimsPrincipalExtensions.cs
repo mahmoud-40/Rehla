@@ -7,8 +7,8 @@ public static class ClaimsPrincipalExtensions
 {
     public static string? GetUserId(this ClaimsPrincipal principal)
     {
-        return principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-            ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return  principal.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+        ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
     }
 
     public static IReadOnlyCollection<string> GetRoles(this ClaimsPrincipal principal)

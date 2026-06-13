@@ -54,7 +54,7 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
             }
         }
 
-        var postsTask =  postsQuery.Take(limit + 1)
+        var postsData = await postsQuery.Take(limit + 1)
             .Select(p => new
             {
                 p.Id,
@@ -73,11 +73,8 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
                 IsLikedByCurrentUser = !string.IsNullOrEmpty(request.CurrentUserId) && p.Reactions.Any(r => r.UserId == request.CurrentUserId),
                 IsEdited = p.UpdatedAt != null && p.UpdatedAt > p.CreatedAt
             }).ToListAsync(cancellationToken);
-        var totalTask =  postsQuery.CountAsync(cancellationToken);
-        await Task.WhenAll(postsTask,totalTask);
+        var totalCount =  await postsQuery.CountAsync(cancellationToken);
         
-        var postsData = postsTask.Result;
-        var totalCount = totalTask.Result;
         
         string? nextCursor = null;
         bool hasMorePosts = postsData.Count > limit;

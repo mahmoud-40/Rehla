@@ -443,7 +443,7 @@ public sealed class GetUserPostsQueryHandlerTests
 
         // Add reactions and comments
         var reaction = new Reaction { UserId = "user-2", Type = ReactionType.Like, Post = post };
-        var comment = new Comment { UserId = "user-3", Content = "Great post!", Post = post, IsDeleted = false };
+        var comment = new Comment { AuthorId = "user-3", Content = "Great post!", Post = post, IsDeleted = false };
 
         dbContext.Posts.Add(post);
         dbContext.Reactions.Add(reaction);

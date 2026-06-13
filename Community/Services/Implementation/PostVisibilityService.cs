@@ -57,7 +57,7 @@ public class PostVisibilityService :IPostVisibilityService
         CancellationToken cancellationToken = default
     )
     {
-        var userTask = _context.Users
+        var user = await _context.Users
             .AsNoTracking()
             .Select(u => new{
                 u.Id,
@@ -67,14 +67,11 @@ public class PostVisibilityService :IPostVisibilityService
             }).FirstOrDefaultAsync(u => u.Id == userId,cancellationToken);
 
         
-        var followingIdsTask =  _context.Follows.AsNoTracking()
+        var followingIds =  await _context.Follows.AsNoTracking()
             .Where(u => u.FollowerId == userId)
             .Select(f => f.FollowingId)
             .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(userTask ,followingIdsTask);
-        var user =  userTask.Result;
-        var followingIds =  followingIdsTask.Result;
         
         var role = user?.IsPatient == true ?
             "Patient" : user?.IsDoctor == true ?

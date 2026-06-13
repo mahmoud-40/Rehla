@@ -111,7 +111,6 @@ namespace BreastCancer
                         .AllowAnyHeader();
                 });
             });
-
             builder.Services.AddAuthorization();
 
             #region JWT Configuration

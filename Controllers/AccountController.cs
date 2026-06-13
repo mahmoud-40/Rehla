@@ -252,16 +252,27 @@ namespace BreastCancer.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await accountService.RefreshTokenAsync(refreshToken);
-
-            if (!result.IsSuccess) return Unauthorized(new { error = result.Errors.First() });
-
-            return Ok(new TokenResponseDTO
+            try
             {
-                AccessToken = result.AccessToken,
-                RefreshToken = result.RefreshToken,
-                ExpiresTime = result.ExpiresTime
-            });
+                var result = await accountService.RefreshTokenAsync(refreshToken);
+                if (!result.IsSuccess) return Unauthorized(new { error = result.Errors.First() });
+                return Ok(new TokenResponseDTO
+                {
+                    AccessToken = result.AccessToken,
+                    RefreshToken = result.RefreshToken,
+                    ExpiresTime = result.ExpiresTime
+                });
+            }
+            catch (Exception ex)
+            {
+                // Temporary - remove before production
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message,
+                    trace = ex.StackTrace
+                });
+            }
         }
 
         // ====================== PASSWORD ======================
