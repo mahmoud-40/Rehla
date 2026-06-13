@@ -320,13 +320,11 @@ namespace BreastCancer.Community.Controllers
             [FromQuery] int limit =10
         )
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest(new {error = "User Id cannot be empty"});
-            }
+             if (string.IsNullOrEmpty(userId))
+                return BadRequest(new { error = "User Id cannot be empty" });
 
-            var cuurentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var query = new GetUserPostsQuery(userId, cursor, limit, cuurentUserId);
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var query = new GetUserPostsQuery(userId, cursor, limit, currentUserId);
 
             try
             {
@@ -336,6 +334,15 @@ namespace BreastCancer.Community.Controllers
             catch (NotFoundException ex)
             {
                 return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message,
+                    trace = ex.StackTrace
+                });
             }
         }
         [HttpPost("posts/{postId:int}/reactions")]

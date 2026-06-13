@@ -52,28 +52,28 @@ namespace BreastCancer.Migrations
                         new
                         {
                             Id = "1",
-                            ConcurrencyStamp = "3c0080ba-54e3-41b1-9867-5726ee8a4912",
+                            ConcurrencyStamp = "0bf4a35a-355a-4b50-bbf1-06e352b90e24",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
                             Id = "2",
-                            ConcurrencyStamp = "ab561c69-fa2c-4ca7-8f65-6ba91e25d272",
+                            ConcurrencyStamp = "4ae2e943-87f9-4278-ba09-62ba2b01282f",
                             Name = "Patient",
                             NormalizedName = "PATIENT"
                         },
                         new
                         {
                             Id = "3",
-                            ConcurrencyStamp = "ec35016c-04ea-4b0b-9499-6eb7bb8a7b5b",
+                            ConcurrencyStamp = "3a7a65fa-36ac-464e-82a1-4fcff6d5166c",
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
                         },
                         new
                         {
                             Id = "4",
-                            ConcurrencyStamp = "539cb863-47ba-4a21-9d80-0db84ae6f013",
+                            ConcurrencyStamp = "68a0c479-97c7-4dfe-98a1-fc4a699c1d00",
                             Name = "Caregiver",
                             NormalizedName = "CAREGIVER"
                         });
