@@ -32,7 +32,7 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
         IQueryable<Post> postsQuery = _context.Posts
             .AsNoTracking()
             .Where(p => p.AuthorId == request.UserId)
-            .Where(p => !p.IsDeleted)
+            .Where(p => !p.IsDeleted)   
             .OrderByDescending(p => p.CreatedAt);
 
         bool isViewingOwnPosts = request.CurrentUserId == request.UserId;
@@ -50,7 +50,8 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
                     out var cursorDate)
                )
             {
-                postsQuery = postsQuery.Where(p => p.CreatedAt < cursorDate.UtcDateTime);
+                var cursorUtc = cursorDate.UtcDateTime;
+                postsQuery = postsQuery.Where(p => p.CreatedAt < cursorUtc);
             }
         }
 
@@ -81,8 +82,9 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
 
         if (hasMorePosts)
         {
-            nextCursor = postsData[limit].CreatedAt.ToString("o");
+            nextCursor = new DateTimeOffset(postsData[limit-1].CreatedAt, TimeSpan.Zero).ToString("o");
             postsData.RemoveAt(limit);
+
         }
 
         var posts = postsData.Select(p => new PostDTO

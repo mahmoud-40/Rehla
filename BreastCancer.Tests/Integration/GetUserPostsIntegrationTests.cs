@@ -31,15 +31,18 @@ public sealed class GetUserPostsIntegrationTests
     }
 
     [Fact]
-    public async Task GetUserPosts_ReturnsBadRequest_WhenUserIdEmpty()
+    public async Task GetUserPosts_ReturnsNotFound_WhenUserIdEmpty()
     {
         var fake = new FakeGetUserPostsMediator();
         await using var app = await BuildAppAsync(fake);
         using var client = CreateAuthenticatedClient(app, "viewer-1");
 
+        // ASP.NET Core normalizes "//" to "/", so "/api/community//posts" becomes
+        // "/api/community/posts" — the {userId} segment is absent entirely and the
+        // route never matches, resulting in 404 rather than 400.
         var response = await client.GetAsync("/api/community//posts");
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -287,7 +290,7 @@ public sealed class GetUserPostsIntegrationTests
 
         // First call with cursor1 to get page 2
         fake.SetResponseForQuery(
-            "user-1", 10, now.AddMinutes(-20).ToString("o"),
+            "user-1", 2, now.AddMinutes(-20).ToString("o"),
             new UserPostsResponseDto
             {
                 Posts = new List<PostDTO>
