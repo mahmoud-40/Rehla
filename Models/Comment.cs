@@ -19,7 +19,7 @@ namespace BreastCancer.Models
         public string Content { get; set; } = null!;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+        public bool IsDeleted { get; set; } = false;
         public virtual Post Post { get; set; } = null!;
         public virtual ApplicationUser Author { get; set; } = null!;
     }
