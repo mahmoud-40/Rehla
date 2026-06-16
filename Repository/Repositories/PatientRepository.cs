@@ -14,8 +14,24 @@ namespace BreastCancer.Repository.Repositories
 
         public async Task<Patient?> GetByIdAsync(string id)
         {
-            // Rely on EF Core lazy loading proxies to load navigation properties (User, Doctor, Caregivers)
-            return await _dbSet.FirstOrDefaultAsync(p => p.UserId == id);
+            return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.User)
+                .Include(p => p.TreatmentPlan)
+                .FirstOrDefaultAsync(p => p.UserId == id);
+        }
+
+        public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Doctor)
+                    .ThenInclude(d => d.User)
+                .Include(p => p.TreatmentPlan)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
         public async Task<Patient?> GetByEmailAsync(string Email)
         {
@@ -30,16 +46,6 @@ namespace BreastCancer.Repository.Repositories
                 .FirstOrDefaultAsync(p => p.UserId == patientId);
 
             return patient;
-        }
-
-        public async Task<IEnumerable<Patient>> GetPagedAsync(int pageNumber, int pageSize)
-        {
-            // Rely on EF Core lazy loading proxies for navigation properties (User, Doctor, Caregivers)
-            // Pagination is applied only to the Patient set
-            return await _dbSet
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
         }
 
         //public async Task<IEnumerable<Patient>> GetAllWithDoctorAndCaregiverAsync()
