@@ -1,11 +1,13 @@
-﻿using BreastCancer.Models;
-using BreastCancer.Context;
+﻿using BreastCancer.Context;
 using BreastCancer.Enum;
+using BreastCancer.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BreastCancer.Seeding
 {
+    [ExcludeFromCodeCoverage]
     public static class DataSeeder
     {
         private const string DoctorUserId = "seed-doctor-001";
