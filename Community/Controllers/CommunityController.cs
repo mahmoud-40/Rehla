@@ -22,6 +22,7 @@ using Rehla.Community.DTO.response;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Features.Queries.GetUserPosts;
 using Swashbuckle.AspNetCore.Annotations;
+using BreastCancer.Community.Features.Queries.SearchUsers;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -428,6 +429,45 @@ namespace BreastCancer.Community.Controllers
             catch (PostAccessForbiddenException ex)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("users/search")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Search users by name or email")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Users retrieved successfully")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        public async Task<IActionResult> SearchUsers(
+           [FromQuery(Name = "query")] string searchTerm,
+           [FromQuery] int limit = 20,
+           CancellationToken cancellationToken = default)
+        {
+            var userId = User.GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new { message = "Could not identify user" });
+            }
+
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return BadRequest(new { message = "Search query cannot be empty" });
+            }
+
+            try
+            {
+                var users = await _mediator.Send(new SearchUsersQuery(searchTerm, limit), cancellationToken);
+
+                return Ok(users);
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                });
+                return BadRequest(new { errors });
             }
         }
     }
