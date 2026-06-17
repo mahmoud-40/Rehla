@@ -1,12 +1,15 @@
+using BreastCancer.Community;
+using BreastCancer.Community.Hubs;
+using BreastCancer.Community.Services.Implementation;
+using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
 using BreastCancer.Hubs;
 using BreastCancer.Mapping;
 using BreastCancer.Models;
-using BreastCancer.Community;
-using BreastCancer.Community.Hubs;
 using BreastCancer.Options;
 using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
+using BreastCancer.Seeding;
 using BreastCancer.Service.Implementation;
 using BreastCancer.Service.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,8 +23,6 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-using BreastCancer.Community.Services.Implementation;
-using BreastCancer.Community.Services.Interface;
 
 
 namespace BreastCancer
@@ -207,6 +208,8 @@ namespace BreastCancer
                 var dbContext = scope.ServiceProvider.GetRequiredService<BreastCancerDB>();
                 await dbContext.Database.MigrateAsync();
             }
+
+            await DataSeeder.SeedAsync(app.Services);
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
