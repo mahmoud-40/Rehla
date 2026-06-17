@@ -47,6 +47,30 @@ docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build
 | User | `sa` |
 | Password | `BC@Password123!` |
 
+## Database Documentation (ERD)
+
+The project uses **SchemaSpy** to generate interactive Entity-Relationship Diagrams and schema documentation. It runs on-demand and does not impact backend performance.
+
+### Generate the Diagram
+
+Run this command from the repository root:
+
+```bash
+docker compose --profile tools up schemaspy
+
+```
+
+### View the Diagram
+
+Open the following file in your browser to view the interactive ERD:
+
+```text
+schema-docs/index.html
+
+```
+
+*Note: The `schema-docs/` folder contains generated artifacts and is automatically ignored by Git.*
+
 ## Authentication
 
 Protected endpoints require a JWT token:
@@ -65,6 +89,9 @@ docker compose up -d --build
 
 # Start core services WITH AI integration
 docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build
+
+# Generate database ERD documentation
+docker compose --profile tools up schemaspy
 
 # Stop services
 docker compose down
@@ -165,9 +192,11 @@ BreastCancer/
 ├── Repository/               # Data access layer
 ├── Service/                  # Business logic
 ├── BreastCancer.Tests/       # Unit and integration tests
+├── drivers/                  # Database drivers for tools (SchemaSpy)
+├── schema-docs/              # Generated database ERD (Git ignored)
 ├── appsettings.json          # Local configuration
 ├── appsettings.Docker.json   # Docker configuration
-├── docker-compose.yml        # Base Docker infrastructure (standalone)
+├── docker-compose.yml        # Base Docker infrastructure (includes tools profile)
 ├── docker-compose.ai.yml     # Optional AI network integration
 └── Dockerfile
 ```
