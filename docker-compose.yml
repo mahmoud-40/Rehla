@@ -1,5 +1,4 @@
-# version: "3.8"
-
+version: "3.8"
 services:
   sql-server:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -57,6 +56,30 @@ services:
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
+    networks:
+      - breast-cancer-network
+
+  schemaspy:
+    image: schemaspy/schemaspy:latest
+    container_name: breast-cancer-schemaspy
+    profiles: ["tools"]
+    depends_on:
+      sql-server:
+        condition: service_healthy
+    volumes:
+      - ./schema-docs:/output
+      - ./drivers:/drivers
+    command: >
+      -t mssql05
+      -dp /drivers
+      -host sql-server
+      -port 1433
+      -db BreastCancerDB
+      -u sa
+      -p "BC@Password123!"
+      -schemas dbo
+      -connprops "encrypt\\=true;trustServerCertificate\\=true"
+      -I "(__EFMigrationsHistory|AspNetRoles|AspNetRoleClaims|AspNetUserClaims|AspNetUserLogins|AspNetUserRoles|AspNetUserTokens|RefreshTokens)"
     networks:
       - breast-cancer-network
 
