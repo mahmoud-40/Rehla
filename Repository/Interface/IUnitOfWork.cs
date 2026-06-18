@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using Rehla.Repository.Interface;
 
 namespace BreastCancer.Repository.Interface
 {
@@ -14,6 +15,7 @@ namespace BreastCancer.Repository.Interface
         IPostRepository PostRepository { get; }
 
         IFollowRepository FollowRepository { get; }
+        ICommentRepository CommentRepository { get; }
 
         INotificationRepository NotificationRepository { get; }
         IHighFollowerPostRepository HighFollowerPostRepository { get; }

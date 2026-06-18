@@ -7,6 +7,7 @@ using BreastCancer.Community.Events.Models;
 using BreastCancer.Community.Exceptions;
 using BreastCancer.Community.Services.Interface;
 using BreastCancer.Models;
+using BreastCancer.Repository.Interface;
 using BreastCancer.Repository.Repositories;
 using BreastCancer.Service.Interface;
 using MediatR;
@@ -14,7 +15,7 @@ using MediatR;
 namespace Rehla.Community.Features.Commands.CreateComment
 {
     public class CreateCommentCommandHandler(
-        UnitOfWork _unitOfWork,
+        IUnitOfWork _unitOfWork,
         IPublisher _publisher, 
         IPostVisibilityService _postVisibilityService,
         ICacheService _cacheService) : IRequestHandler<CreateCommentCommand,CommentResponseDTO>
