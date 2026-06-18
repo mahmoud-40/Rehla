@@ -39,5 +39,12 @@ namespace Rehla.Repository.Repositories
                 _Context.Update(comment);
             }
         }
+        public async Task<Comment?> GetByIdWithIncludesAsync(int commentId)
+        {
+            return await _Context.Comments
+                .Include(c => c.Author)
+                .Include(c => c.Post)
+                .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted);
+        }
     }
 }

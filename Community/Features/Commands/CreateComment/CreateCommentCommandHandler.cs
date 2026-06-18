@@ -45,7 +45,7 @@ namespace Rehla.Community.Features.Commands.CreateComment
                     Content = request.comment.Content,
                     ImageUrl = request.comment.ImageUrl
                 };
-                comment = await _unitOfWork.CommentRepository.AddCommentAsync(comment);
+                await _unitOfWork.CommentRepository.AddCommentAsync(comment);
                 await _unitOfWork.SaveAsync();
                 
                 await transaction.CommitAsync(cancellationToken);
@@ -59,17 +59,17 @@ namespace Rehla.Community.Features.Commands.CreateComment
                 }
                 throw;
             }
-            
+            var savedComment = await _unitOfWork.CommentRepository.GetByIdWithIncludesAsync(comment.Id);
             var commentDTO = new CommentResponseDTO
             {
-                AuthorId = comment.AuthorId,
-                Content = comment.Content,
-                PostId = comment.PostId,
-                ImageUrl = comment.ImageUrl,
-                CommentId = comment.Id,
-                AuthorName =  comment.Author.FullName,
-                AuthorAvaterUrl = comment.Author.ImageUrl,
-                CreatedAt = comment.CreatedAt
+                AuthorId = savedComment.AuthorId,
+                Content = savedComment.Content,
+                PostId = savedComment.PostId,
+                ImageUrl = savedComment.ImageUrl,
+                CommentId = savedComment.Id,
+                AuthorName =  savedComment.Author.FullName,
+                AuthorAvaterUrl = savedComment.Author.ImageUrl,
+                CreatedAt = savedComment.CreatedAt
             };
             await _cacheService.SetAsync(BuildCommentCacheKey(comment.PostId,comment.Id), commentDTO, ttl:TimeSpan.FromHours(1), cancellationToken);
             await _cacheService.IncrementHashFieldAsync(

@@ -10,6 +10,7 @@ namespace Rehla.Repository.Interface
     public interface ICommentRepository : IGenericRepository<Comment>
     {
         Task<Comment> AddCommentAsync(Comment comment);
+        Task<Comment?> GetByIdWithIncludesAsync(int commentId);
         Task SoftDelete(int commentId);
     }
 }
