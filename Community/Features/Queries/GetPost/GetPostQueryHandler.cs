@@ -24,6 +24,7 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
     public async Task<PostDTO> Handle(GetPostQuery request, CancellationToken cancellationToken)
     {
         var post = await _dbContext.Posts.AsNoTracking()
+            .Include(p => p.Author)
             .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, cancellationToken);
 
         if (post is null)

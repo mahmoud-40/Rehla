@@ -8,7 +8,6 @@ namespace BreastCancer.Community.DTO.response
         public int Id { get; set; }
         public string Content { get; set; }
         public PostType PostType { get; set; }
-        public List<string>? ImageUrl { get; set; } = new();
         public string AuthorId { get; set; } = null!;
         public string AuthorName { get; set; } = null!;
         public string? AuthorAvatarUrl { get; set; }
