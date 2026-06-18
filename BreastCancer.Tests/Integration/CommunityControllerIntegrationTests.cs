@@ -12,6 +12,7 @@ using BreastCancer.Community.Features.GetPost;
 using BreastCancer.Community.Features.UpdatePost;
 using BreastCancer.Community.Features.Commands.AddReaction;
 using BreastCancer.Community.Features.Commands.RemoveReaction;
+using BreastCancer.Community.Features.Queries.SearchUsers;
 using BreastCancer.Enum;
 using FluentAssertions;
 using MediatR;
@@ -347,6 +348,85 @@ public class CommunityControllerIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task SearchUsers_ReturnsUnauthorized_WhenNotAuthenticated()
+    {
+        await using var app = await BuildAppAsync(new FakeMediator());
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, " ");
+
+        // Act
+        var response = await client.GetAsync("/api/community/users/search?query=John");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task SearchUsers_ReturnsBadRequest_WhenQueryIsEmpty()
+    {
+        var fake = new FakeMediator();
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        // Act - Notice the empty query parameter
+        var response = await client.GetAsync("/api/community/users/search?query=");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task SearchUsers_ReturnsOk_WithUsersFromMediator()
+    {
+        // Arrange
+        var fake = new FakeMediator();
+        fake.SearchUsersResponse = new List<UserSearchDto>
+        {
+            new("user-2", "John Doe", "john@example.com", "http://avatar.url/john.jpg"),
+            new("user-3", "Jane Doe", "jane@example.com", "http://avatar.url/jane.jpg")
+        };
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        // Act
+        var response = await client.GetAsync("/api/community/users/search?query=Doe&limit=15");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var payload = await response.Content.ReadFromJsonAsync<List<UserSearchDto>>();
+        payload.Should().NotBeNull();
+        payload.Should().HaveCount(2);
+        payload!.Select(u => u.Name).Should().ContainInOrder("John Doe", "Jane Doe");
+
+        fake.LastSearchUsersQuery.Should().NotBeNull();
+        fake.LastSearchUsersQuery!.SearchTerm.Should().Be("Doe");
+        fake.LastSearchUsersQuery.Limit.Should().Be(15);
+    }
+
+    [Fact]
+    public async Task SearchUsers_ReturnsOk_WithEmptyList_WhenNoUsersFound()
+    {
+        // Arrange
+        var fake = new FakeMediator();
+        fake.SearchUsersResponse = new List<UserSearchDto>(); // Returns empty list
+
+        await using var app = await BuildAppAsync(fake);
+        using var client = CreateAuthenticatedClient(app, "user-1");
+
+        // Act
+        var response = await client.GetAsync("/api/community/users/search?query=NonExistentPerson");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var payload = await response.Content.ReadFromJsonAsync<List<UserSearchDto>>();
+        payload.Should().NotBeNull();
+        payload.Should().BeEmpty(); 
+    }
+
     private static HttpClient CreateAuthenticatedClient(WebApplication app, string userId, IReadOnlyCollection<string>? roles = null)
     {
         var client = app.GetTestClient();
@@ -390,6 +470,10 @@ public class CommunityControllerIntegrationTests
         public DeletePostCommand? LastDeletePostCommand { get; private set; }
         public AddReactionCommand? LastAddReactionCommand { get; private set; }
         public RemoveReactionCommand? LastRemoveReactionCommand { get; private set; } 
+        
+        public SearchUsersQuery? LastSearchUsersQuery { get; private set; }
+        public List<UserSearchDto>? SearchUsersResponse { get; set; } = new();
+
         public Exception? AddReactionException { get; set; }
         public Exception? RemoveReactionException { get; set; } 
 
@@ -490,6 +574,12 @@ public class CommunityControllerIntegrationTests
                 return Task.FromResult((TResponse)(object)MediatR.Unit.Value);
             }
 
+            if (request is SearchUsersQuery searchUsersQuery)
+            {
+                LastSearchUsersQuery = searchUsersQuery;
+                return Task.FromResult((TResponse)(object)(SearchUsersResponse ?? new List<UserSearchDto>()));
+            }
+
             return Task.FromResult(default(TResponse)!);
         }
 
@@ -552,6 +642,12 @@ public class CommunityControllerIntegrationTests
                     return Task.FromException<object?>(RemoveReactionException);
                 }
                 return Task.FromResult<object?>(MediatR.Unit.Value);
+            }
+
+            if (request is SearchUsersQuery searchUsersQueryObj)
+            {
+                LastSearchUsersQuery = searchUsersQueryObj;
+                return Task.FromResult<object?>(SearchUsersResponse ?? new List<UserSearchDto>());
             }
 
             return Task.FromResult<object?>(null);
