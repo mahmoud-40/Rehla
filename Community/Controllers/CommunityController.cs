@@ -23,6 +23,7 @@ using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Features.Queries.GetUserPosts;
 using Swashbuckle.AspNetCore.Annotations;
 using BreastCancer.Community.Features.Queries.SearchUsers;
+using Rehla.Community.Features.Commands.CreateComment;
 
 namespace BreastCancer.Community.Controllers
 {
@@ -468,6 +469,45 @@ namespace BreastCancer.Community.Controllers
                     message = error.ErrorMessage
                 });
                 return BadRequest(new { errors });
+            }
+        }
+        [HttpPost("posts/{postId:int}/comments")]  // add :int constraint — consistent with other post routes
+        [Authorize]                                // missing — anyone can comment right now
+        [SwaggerOperation(Summary = "Add a comment to a post")]
+        [SwaggerResponse(StatusCodes.Status201Created, "Comment created successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Validation error")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - post not visible to user")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found")]
+        public async Task<IActionResult> CreateComment(
+            [FromRoute] int postId,
+            [FromBody] CreateCommentDTO request,
+            CancellationToken cancellationToken)
+        {
+            var authorId = User.GetUserId();          // use the existing extension — consistent with all other endpoints
+            if (string.IsNullOrWhiteSpace(authorId))
+                return Unauthorized(new { message = "Could not identify user" });
+
+            try
+            {
+                var result = await _mediator.Send(
+                    new CreateCommentCommand(request, authorId, postId, cancellationToken),
+                    cancellationToken);
+
+                return StatusCode(StatusCodes.Status201Created, result);  // matches how CreatePost returns 201
+            }
+            catch (ValidationException ex)
+            {
+                var errors = ex.Errors.Select(e => new { field = e.PropertyName, message = e.ErrorMessage });
+                return BadRequest(new { errors });
+            }
+            catch (PostNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (CommentAccessForbiddenException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
         }
     }

@@ -60,7 +60,7 @@ public static class CommunityModule
         services.AddScoped<IPostCreatedEventSink, NoOpPostCreatedEventSink>();
         services.AddScoped<IFollowCreatedEventSink, NoOpFollowCreatedEventSink>();
         services.AddScoped<ICommunityNotifier, CommunityNotifier>();
-
+        services.AddScoped<ICommentCreatedEventSink ,NoOpCommentCreatedEventSink>();
         return services;
     }
 
