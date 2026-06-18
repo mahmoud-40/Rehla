@@ -46,14 +46,6 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, UserP
             .Where(p => p.AuthorId == request.UserId && !p.IsDeleted)   
             .OrderByDescending(p => p.CreatedAt);
 
-        bool isViewingOwnPosts = request.CurrentUserId == request.UserId;
-
-        if (!isViewingOwnPosts)
-        {
-            postsQuery = await _postVisibilityService
-                .ApplyVisibilityFilterAsync(postsQuery, request.CurrentUserId, cancellationToken);
-        }
-
         if (!string.IsNullOrEmpty(request.Cursor) && 
             DateTimeOffset.TryParseExact(request.Cursor, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var cursorDate))
         {
