@@ -73,10 +73,12 @@ namespace Rehla.Community.Features.Commands.CreateComment
             };
             await _cacheService.SetAsync(BuildCommentCacheKey(comment.PostId,comment.Id), commentDTO, ttl:TimeSpan.FromHours(1), cancellationToken);
             await _cacheService.IncrementHashFieldAsync(
-                key: $"post:{comment.PostId}",       
+                key: $"post:{comment.PostId}:comments",       
                 field: "comment-count",              
                 incrementBy: 1,
                 cancellationToken: cancellationToken);
+
+              
             await _publisher.Publish(
                 new CommentCreatedEvent(comment.Id, comment.PostId, comment.AuthorId,post.AuthorId ,comment.Content,
                     comment.CreatedAt), cancellationToken);
