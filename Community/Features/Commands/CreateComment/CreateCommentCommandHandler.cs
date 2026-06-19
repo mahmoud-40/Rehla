@@ -72,6 +72,7 @@ namespace Rehla.Community.Features.Commands.CreateComment
                 CreatedAt = savedComment.CreatedAt
             };
             await _cacheService.SetAsync(BuildCommentCacheKey(comment.PostId,comment.Id), commentDTO, ttl:TimeSpan.FromHours(1), cancellationToken);
+            
             await _cacheService.IncrementHashFieldAsync(
                 key: $"post:{comment.PostId}:comments",       
                 field: "comment-count",              

@@ -40,7 +40,10 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDTO>
         var dto = _mapper.Map<PostDTO>(post);
 
         var reactionCounts = await _cacheService.GetHashAllFieldsAsync($"post:{post.Id}:reactions", cancellationToken);
+        var commentCounts = await _cacheService.GetHashAllFieldsAsync($"post:{post.Id}:comments", cancellationToken);
+
         dto.ReactionCounts = reactionCounts;
+        dto.CommentCounts = commentCounts;
 
         return dto;
     }

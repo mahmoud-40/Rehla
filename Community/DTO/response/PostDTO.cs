@@ -26,5 +26,6 @@ namespace BreastCancer.Community.DTO.response
         public bool IsEdited { get; set; }
 
         public Dictionary<string, long> ReactionCounts { get; set; } = new();
+        public Dictionary<string, long> CommentCounts { get; set; } = new();
     }
 }

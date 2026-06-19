@@ -13,10 +13,12 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
 {
     private readonly BreastCancerDB _context;
     private readonly IPostVisibilityService _postVisibilityService;
-    public GetUserPostsQueryHandler(BreastCancerDB context,IPostVisibilityService postVisibilityService)
+    private readonly ICacheService _cacheService;
+    public GetUserPostsQueryHandler(BreastCancerDB context,IPostVisibilityService postVisibilityService,ICacheService cacheService)
     {
         this._context = context;
         this._postVisibilityService = postVisibilityService;
+        this._cacheService= cacheService;
     }
     public async Task<UserPostsResponseDto> Handle(GetUserPostsQuery request, CancellationToken cancellationToken)
     {
@@ -113,7 +115,12 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
             UpdatedAt = p.UpdatedAt,
             IsEdited = p.IsEdited
         }).ToList();
-
+        
+        foreach (var post in posts)
+        {
+            post.ReactionCounts = await _cacheService.GetHashAllFieldsAsync($"post:{post.Id}:reactions", cancellationToken);
+            post.CommentCounts = await _cacheService.GetHashAllFieldsAsync($"post:{post.Id}:comments", cancellationToken);
+        }
         return new UserPostsResponseDto
         {
             Posts = posts,
