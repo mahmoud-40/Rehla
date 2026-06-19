@@ -24,13 +24,16 @@ public class PostVisibilityService :IPostVisibilityService
 
         var userContext = await GetUserContextAsync(currentUserId, cancellationToken);
         var followingIds = userContext.FollowingIds;
-
-        return query.Where(
-            post => post.AuthorId == currentUserId ||
-            IsVisibleByRole(post.Visibility,userContext.Role) || 
+        var role = userContext.Role;
+        
+        return query.Where(post =>
+            post.AuthorId == currentUserId ||
+            post.Visibility == PostVisibility.Public ||
+            (post.Visibility == PostVisibility.DoctorOnly && role == "Doctor") ||
+            (post.Visibility == PostVisibility.PatientsOnly && role == "Patient") ||
+            (post.Visibility == PostVisibility.CaregiverOnly && role == "Caregiver") ||
             (post.Visibility == PostVisibility.FollowersOnly && followingIds.Contains(post.AuthorId))
         );
-
     }
 
     public async Task<bool> IsPostVisibleAsync(Post post, string? currentUserId, CancellationToken cancellationToken = default)

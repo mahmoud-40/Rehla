@@ -236,7 +236,10 @@ namespace BreastCancer.Mapping
                 .ForMember(dest => dest.PostVisibility, opt => opt.MapFrom(src => src.Visibility))
                 .ForMember(dest => dest.MediaUrls, opt => opt.MapFrom(src => src.MediaUrls))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
-                .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(src => src.IsEdited));
+                .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(src => src.IsEdited))
+                .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author != null ? src.Author.FullName : null))
+                .ForMember(dest => dest.AuthorAvatarUrl, opt => opt.MapFrom(src => src.Author != null ? src.Author.ImageUrl : null))
+                .ForMember(dest => dest.AuthorRole, opt => opt.Ignore()); 
 
             #endregion
 

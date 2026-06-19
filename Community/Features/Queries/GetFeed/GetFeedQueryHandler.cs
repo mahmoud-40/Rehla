@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using BreastCancer.Community.DTO.response;
 using BreastCancer.Community.Services.Interface;
 using BreastCancer.Context;
@@ -19,17 +21,20 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
     private readonly BreastCancerDB _dbContext;
     private readonly ICacheService _cacheService;
     private readonly ILogger<GetFeedQueryHandler> _logger;
+    private readonly IMapper _mapper;
 
     public GetFeedQueryHandler(
         IConnectionMultiplexer connectionMultiplexer,
         BreastCancerDB dbContext,
         ICacheService cacheService,
-        ILogger<GetFeedQueryHandler> logger)
+        ILogger<GetFeedQueryHandler> logger,
+        IMapper mapper)
     {
         _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     public async Task<FeedResponseDto> Handle(GetFeedQuery request, CancellationToken cancellationToken)
@@ -160,20 +165,8 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
         {
             var postsFromDb = await _dbContext.Posts
                 .AsNoTracking()
-                .Include(p => p.Author)
                 .Where(p => missedIds.Contains(p.Id) && !p.IsDeleted)
-                .Select(p => new PostDTO
-                {
-                    Id = p.Id,
-                    AuthorId = p.AuthorId,
-                    Content = p.Content,
-                    PostType = p.Type,
-                    PostVisibility = p.Visibility,
-                    MediaUrls = p.MediaUrls,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt,
-                    IsEdited = p.IsEdited
-                })
+                .ProjectTo<PostDTO>(_mapper.ConfigurationProvider, new { currentUserId = userId ?? string.Empty })
                 .ToListAsync(cancellationToken);
 
             foreach (var post in postsFromDb)
@@ -202,7 +195,6 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, FeedResp
             .Select(id => results[id])
             .ToList();
     }
-
     private static FeedResponseDto BuildResponse(List<PostDTO> hydratedPosts, int normalizedLimit)
     {
         var page = hydratedPosts.Take(normalizedLimit).ToList();
