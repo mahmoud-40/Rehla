@@ -19,6 +19,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using Rehla.Repository.Interface;
+using Rehla.Repository.Repositories;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
@@ -96,6 +98,7 @@ namespace BreastCancer
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
             builder.Services.AddScoped<IPostVisibilityService, PostVisibilityService>();
+            builder.Services.AddScoped<ICommentRepository,CommentRepository>();
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<MappingProfile>();

@@ -31,8 +31,16 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery,UserPo
         int limit = Math.Clamp(request.Limit, 1, 50);
         IQueryable<Post> postsQuery = _context.Posts
             .AsNoTracking()
+            .Include(p => p.Author)
+                .ThenInclude(a => a.Patient)
+            .Include(p => p.Author)
+                .ThenInclude(a => a.Doctor)
+            .Include(p => p.Author)
+                .ThenInclude(a => a.Caregiver)
+            .Include(p => p.Reactions)
+            .Include(p => p.Comments.Where(c => !c.IsDeleted))
             .Where(p => p.AuthorId == request.UserId)
-            .Where(p => !p.IsDeleted)   
+            .Where(p => !p.IsDeleted)
             .OrderByDescending(p => p.CreatedAt);
 
         bool isViewingOwnPosts = request.CurrentUserId == request.UserId;

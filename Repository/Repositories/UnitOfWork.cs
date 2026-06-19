@@ -3,6 +3,8 @@ using BreastCancer.Models;
 using BreastCancer.Repository.Interface;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
+using Rehla.Repository.Interface;
+using Rehla.Repository.Repositories;
 
 namespace BreastCancer.Repository.Repositories
 {
@@ -21,6 +23,7 @@ namespace BreastCancer.Repository.Repositories
         private INotificationRepository _notificationRepository;
         private IHighFollowerPostRepository _highFollowerPostRepository;
         private IReactionRepository _reactionRepository;
+        private ICommentRepository _commentRepository;
 
         public UnitOfWork(BreastCancerDB Context)
         {
@@ -153,6 +156,19 @@ namespace BreastCancer.Repository.Repositories
                     _reactionRepository = new ReactionRepository(context);
                 }
                 return _reactionRepository;
+            }
+        }
+
+        public ICommentRepository CommentRepository
+        {
+            get
+            {
+                if (_commentRepository == null)
+                {
+                    _commentRepository = new CommentRepository(context);
+                }
+
+                return _commentRepository;
             }
         }
 
