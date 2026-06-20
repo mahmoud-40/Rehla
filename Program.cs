@@ -212,11 +212,9 @@ namespace BreastCancer
             await DataSeeder.SeedAsync(app.Services);
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            app.UseSwagger();
+            app.UseSwaggerUI();
+            
             app.UseCors("AllowAll");
             app.UseHttpsRedirection();
             app.UseStaticFiles();
